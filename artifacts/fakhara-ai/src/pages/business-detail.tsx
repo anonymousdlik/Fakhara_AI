@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, useMemo } from "react";
 import { useParams, Link, useLocation } from "wouter";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import {
@@ -756,8 +756,50 @@ function ProgressTab({ businessId, businessName }: { businessId: number; busines
     onError: (err) => toast({ title: "Gagal mencatat progress", description: String(err), variant: "destructive" }),
   });
 
+  const summary = useMemo(() => {
+    if (!progress || progress.length === 0) return null;
+    const totalSaved = progress.reduce((sum, p) => sum + (Number(p.baselineEmissions) - Number(p.actualEmissions)), 0);
+    const avgReduction = progress.reduce((sum, p) => sum + Number(p.reductionPercent), 0) / progress.length;
+    const bestRecord = progress.reduce((best, p) => Number(p.reductionPercent) > Number(best.reductionPercent) ? p : best, progress[0]);
+    return { totalSaved, avgReduction, bestMonth: bestRecord.month, bestReduction: Number(bestRecord.reductionPercent) };
+  }, [progress]);
+
   return (
     <div className="space-y-5">
+      {summary && (
+        <Card className="border-0 shadow-sm bg-gradient-to-br from-green-50 to-emerald-50">
+          <CardHeader className="pb-2">
+            <CardTitle className="text-sm font-semibold text-gray-700 flex items-center gap-2">
+              <TrendingDown className="w-4 h-4 text-green-600" />
+              Ringkasan Pencapaian
+            </CardTitle>
+          </CardHeader>
+          <CardContent>
+            <div className="grid grid-cols-3 gap-4">
+              <div className="text-center">
+                <p className="text-xs text-gray-500 mb-1">Total CO₂e Dihemat</p>
+                <p className={`text-lg font-bold ${summary.totalSaved >= 0 ? "text-green-600" : "text-red-500"}`}>
+                  {summary.totalSaved >= 0 ? "+" : ""}{summary.totalSaved.toFixed(3)}
+                </p>
+                <p className="text-xs text-gray-400">ton CO₂e</p>
+              </div>
+              <div className="text-center border-x border-green-100">
+                <p className="text-xs text-gray-500 mb-1">Bulan Terbaik</p>
+                <p className="text-sm font-bold text-emerald-700">{summary.bestMonth}</p>
+                <p className="text-xs text-green-600 font-medium">↓ {summary.bestReduction.toFixed(1)}%</p>
+              </div>
+              <div className="text-center">
+                <p className="text-xs text-gray-500 mb-1">Rata-rata Reduksi</p>
+                <p className={`text-lg font-bold ${summary.avgReduction >= 0 ? "text-green-600" : "text-red-500"}`}>
+                  {summary.avgReduction >= 0 ? "+" : ""}{summary.avgReduction.toFixed(1)}%
+                </p>
+                <p className="text-xs text-gray-400">per bulan</p>
+              </div>
+            </div>
+          </CardContent>
+        </Card>
+      )}
+
       {progress && progress.length > 0 && (
         <Card className="border-0 shadow-sm bg-white">
           <CardHeader className="pb-2">
