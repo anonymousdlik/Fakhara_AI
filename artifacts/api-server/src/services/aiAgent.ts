@@ -1,4 +1,4 @@
-import { openai } from "@workspace/integrations-openai-ai-server";
+import { openai } from "../lib/openaiClient";
 import type { CarbonBreakdown } from "./carbonCalculator";
 
 const MODEL = "gpt-4o";

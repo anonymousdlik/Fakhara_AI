@@ -1,4 +1,4 @@
-import { openai } from "@workspace/integrations-openai-ai-server";
+import { openai } from "../lib/openaiClient";
 
 type ChatCreateParams = Parameters<typeof openai.chat.completions.create>[0];
 type ChatMessages = ChatCreateParams["messages"];
