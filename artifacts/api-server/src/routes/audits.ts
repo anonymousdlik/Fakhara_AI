@@ -149,7 +149,7 @@ router.post("/businesses/:id/audits", async (req, res) => {
         electricityKwh: String(electricityKwh),
         fuelLiters: String(fuelLiters),
         wasteKg: String(wasteKg),
-        supplyChainSpendIdr: supplyChainSpendIdr
+        supplyChainSpendIdr: supplyChainSpendIdr != null
           ? String(supplyChainSpendIdr)
           : undefined,
         vehicleCount,

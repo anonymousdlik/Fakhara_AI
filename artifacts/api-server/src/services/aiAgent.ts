@@ -3,6 +3,18 @@ import type { CarbonBreakdown } from "./carbonCalculator";
 
 const MODEL = "gpt-4o";
 
+function safeJsonParse<T>(content: string, errorMsg: string): T {
+  try {
+    return JSON.parse(content) as T;
+  } catch {
+    const jsonMatch = content.match(/\{[\s\S]*\}|\[[\s\S]*\]/);
+    if (jsonMatch) {
+      return JSON.parse(jsonMatch[0]) as T;
+    }
+    throw new Error(`${errorMsg}: ${content.slice(0, 200)}`);
+  }
+}
+
 export interface ClarifyingQuestion {
   id: string;
   question: string;
@@ -117,7 +129,7 @@ Format JSON:
   const content = response.choices[0]?.message?.content;
   if (!content) return [];
 
-  const parsed = JSON.parse(content) as { questions: ClarifyingQuestion[] };
+  const parsed = safeJsonParse<{ questions: ClarifyingQuestion[] }>(content, "Gagal mem-parse pertanyaan AI");
   return parsed.questions.slice(0, 3);
 }
 
@@ -221,7 +233,7 @@ Buat 6-8 aksi prioritas. Format JSON:
   const content = response.choices[0]?.message?.content;
   if (!content) throw new Error("Gagal menghasilkan rencana aksi");
 
-  return JSON.parse(content) as ActionPlanAI;
+  return safeJsonParse<ActionPlanAI>(content, "Gagal mem-parse rencana aksi AI");
 }
 
 export async function generateSupplierRecommendations(
@@ -272,7 +284,7 @@ Buat 4-5 rekomendasi pemasok hijau yang relevan untuk sektor ${business.sector}.
   const content = response.choices[0]?.message?.content;
   if (!content) throw new Error("Gagal menghasilkan rekomendasi pemasok");
 
-  const parsed = JSON.parse(content) as { suppliers: SupplierAI[] };
+  const parsed = safeJsonParse<{ suppliers: SupplierAI[] }>(content, "Gagal mem-parse rekomendasi pemasok AI");
   return parsed.suppliers;
 }
 
@@ -329,5 +341,5 @@ Buat laporan ESG komprehensif. Format JSON:
   const content = response.choices[0]?.message?.content;
   if (!content) throw new Error("Gagal menghasilkan laporan ESG");
 
-  return JSON.parse(content) as EsgReportAI;
+  return safeJsonParse<EsgReportAI>(content, "Gagal mem-parse laporan ESG AI");
 }

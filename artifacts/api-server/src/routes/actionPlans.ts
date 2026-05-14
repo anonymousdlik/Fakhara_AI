@@ -35,7 +35,7 @@ router.get("/businesses/:id/action-plan", async (req, res) => {
       items: items.map((i) => ({
         ...i,
         estimatedReduction: Number(i.estimatedReduction),
-        estimatedCostIdr: i.estimatedCostIdr
+        estimatedCostIdr: i.estimatedCostIdr != null
           ? Number(i.estimatedCostIdr)
           : undefined,
       })),
@@ -113,7 +113,7 @@ router.post("/businesses/:id/action-plan", async (req, res) => {
           category: item.category,
           priority: item.priority,
           estimatedReduction: String(item.estimatedReduction),
-          estimatedCostIdr: item.estimatedCostIdr
+          estimatedCostIdr: item.estimatedCostIdr != null
             ? String(item.estimatedCostIdr)
             : undefined,
           reasoning: item.reasoning,
@@ -128,7 +128,7 @@ router.post("/businesses/:id/action-plan", async (req, res) => {
       items: insertedItems.map((i) => ({
         ...i,
         estimatedReduction: Number(i.estimatedReduction),
-        estimatedCostIdr: i.estimatedCostIdr
+        estimatedCostIdr: i.estimatedCostIdr != null
           ? Number(i.estimatedCostIdr)
           : undefined,
       })),
