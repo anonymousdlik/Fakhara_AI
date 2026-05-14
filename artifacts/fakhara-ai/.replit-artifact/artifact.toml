@@ -1,0 +1,31 @@
+kind = "web"
+previewPath = "/"
+title = "Fakhara AI"
+version = "1.0.0"
+id = "artifacts/fakhara-ai"
+router = "path"
+
+[[integratedSkills]]
+name = "react-vite"
+version = "1.0.0"
+
+[[services]]
+name = "web"
+paths = [ "/" ]
+localPort = 26174
+
+[services.development]
+run = "pnpm --filter @workspace/fakhara-ai run dev"
+
+[services.production]
+build = [ "pnpm", "--filter", "@workspace/fakhara-ai", "run", "build" ]
+publicDir = "artifacts/fakhara-ai/dist/public"
+serve = "static"
+
+[[services.production.rewrites]]
+from = "/*"
+to = "/index.html"
+
+[services.env]
+PORT = "26174"
+BASE_PATH = "/"

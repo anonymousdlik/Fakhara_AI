@@ -8,3 +8,247 @@
 export interface HealthStatus {
   status: string;
 }
+
+export interface Business {
+  id: number;
+  name: string;
+  /** Business sector (e.g. kuliner, fashion, retail, manufaktur, jasa) */
+  sector: string;
+  location: string;
+  employeeCount: number;
+  description?: string;
+  createdAt: string;
+  updatedAt: string;
+}
+
+export interface BusinessWithSummary {
+  id: number;
+  name: string;
+  sector: string;
+  location: string;
+  employeeCount: number;
+  description?: string;
+  createdAt: string;
+  updatedAt: string;
+  latestAuditId?: number | null;
+  /** Total CO2e in tonnes per year */
+  latestTotalEmissions?: number | null;
+  /** Percentage change vs previous audit */
+  emissionsTrend?: number | null;
+  actionItemsCompleted: number;
+  actionItemsTotal: number;
+}
+
+export interface CreateBusinessBody {
+  name: string;
+  sector: string;
+  location: string;
+  employeeCount: number;
+  description?: string;
+}
+
+export interface Audit {
+  id: number;
+  businessId: number;
+  /** Total CO2e in tonnes per year */
+  totalEmissions: number;
+  /** e.g. 2024-Q1, 2024-Annual */
+  period: string;
+  createdAt: string;
+}
+
+export interface AuditWithBreakdown {
+  id: number;
+  businessId: number;
+  totalEmissions: number;
+  period: string;
+  createdAt: string;
+  /** CO2e from electricity/energy */
+  energyEmissions: number;
+  /** CO2e from transportation */
+  transportEmissions: number;
+  /** CO2e from waste */
+  wasteEmissions: number;
+  /** CO2e from supply chain */
+  supplyChainEmissions: number;
+  electricityKwh: number;
+  fuelLiters: number;
+  wasteKg: number;
+  /** AI-generated insights about the audit */
+  aiInsights?: string;
+}
+
+export interface CreateAuditBody {
+  /** Reporting period e.g. 2024-Annual */
+  period: string;
+  /** Monthly electricity consumption in kWh */
+  electricityKwh: number;
+  /** Monthly fuel consumption in liters */
+  fuelLiters: number;
+  /** Monthly waste generated in kg */
+  wasteKg: number;
+  /** Monthly supply chain spend in IDR */
+  supplyChainSpendIdr?: number;
+  /** Number of operational vehicles */
+  vehicleCount?: number;
+  /** Number of deliveries per month */
+  deliveriesPerMonth?: number;
+}
+
+export interface ActionItem {
+  id: number;
+  planId: number;
+  title: string;
+  description: string;
+  /** energi | transportasi | sampah | supply_chain */
+  category: string;
+  /** quick_win | medium_term | long_term */
+  priority: string;
+  /** Estimated CO2e reduction in tonnes */
+  estimatedReduction: number;
+  /** Estimated implementation cost in IDR */
+  estimatedCostIdr?: number;
+  /** AI explanation for why this action was recommended */
+  reasoning: string;
+  /** pending | in_progress | completed */
+  status: string;
+  completedAt?: string | null;
+}
+
+export interface ActionPlan {
+  id: number;
+  businessId: number;
+  auditId: number;
+  /** AI-generated summary of the plan */
+  summary: string;
+  /** Estimated total CO2e reduction in tonnes */
+  totalPotentialReduction: number;
+  createdAt: string;
+  items: ActionItem[];
+}
+
+export interface UpdateActionItemBody {
+  /** pending | in_progress | completed */
+  status: string;
+}
+
+export interface SupplierRecommendation {
+  id: number;
+  businessId: number;
+  name: string;
+  /** energi | bahan_baku | packaging | logistik */
+  category: string;
+  description: string;
+  greenCertification?: string | null;
+  location: string;
+  /** Estimated CO2e reduction if switched to this supplier */
+  estimatedEmissionReduction: number;
+  reasoning: string;
+  website?: string | null;
+}
+
+export interface ProgressRecord {
+  id: number;
+  businessId: number;
+  /** e.g. 2024-01 */
+  month: string;
+  /** Actual CO2e this month in tonnes */
+  actualEmissions: number;
+  /** Baseline CO2e for comparison */
+  baselineEmissions: number;
+  /** Percentage reduction vs baseline */
+  reductionPercent: number;
+  notes?: string | null;
+  createdAt: string;
+}
+
+export interface LogProgressBody {
+  month: string;
+  actualEmissions: number;
+  baselineEmissions: number;
+  notes?: string;
+}
+
+export interface EsgReport {
+  id: number;
+  businessId: number;
+  period: string;
+  totalEmissions: number;
+  reductionFromBaseline: number;
+  environmentalScore: number;
+  socialScore: number;
+  governanceScore: number;
+  overallScore: number;
+  executiveSummary: string;
+  environmentalSection: string;
+  socialSection: string;
+  governanceSection: string;
+  recommendations: string;
+  createdAt: string;
+}
+
+export interface DashboardSummary {
+  totalBusinesses: number;
+  /** Total current CO2e across all businesses */
+  totalEmissionsTonnes: number;
+  /** Average reduction percentage across all businesses */
+  avgReductionPercent: number;
+  completedActions: number;
+  totalActions: number;
+}
+
+export interface OpenaiConversation {
+  id: number;
+  title: string;
+  createdAt: string;
+}
+
+export interface OpenaiMessage {
+  id: number;
+  conversationId: number;
+  role: string;
+  content: string;
+  createdAt: string;
+}
+
+export interface CreateOpenaiConversationBody {
+  title: string;
+}
+
+export interface SendOpenaiMessageBody {
+  content: string;
+}
+
+export interface SendOpenaiVoiceMessageBody {
+  /** Base64-encoded audio data */
+  audio: string;
+}
+
+export interface OpenaiConversationWithMessages {
+  id: number;
+  title: string;
+  createdAt: string;
+  messages: OpenaiMessage[];
+}
+
+export type GenerateOpenaiImageBodySize =
+  (typeof GenerateOpenaiImageBodySize)[keyof typeof GenerateOpenaiImageBodySize];
+
+export const GenerateOpenaiImageBodySize = {
+  "1024x1024": "1024x1024",
+  "512x512": "512x512",
+  "256x256": "256x256",
+} as const;
+
+export interface GenerateOpenaiImageBody {
+  prompt: string;
+  size?: GenerateOpenaiImageBodySize;
+}
+
+export interface GenerateOpenaiImageResponse {
+  b64_json: string;
+}
+
+export interface OpenaiError {
+  error: string;
+}

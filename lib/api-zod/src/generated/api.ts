@@ -14,3 +14,442 @@ import * as zod from "zod";
 export const HealthCheckResponse = zod.object({
   status: zod.string(),
 });
+
+/**
+ * @summary List all businesses
+ */
+export const ListBusinessesResponseItem = zod.object({
+  id: zod.number(),
+  name: zod.string(),
+  sector: zod
+    .string()
+    .describe(
+      "Business sector (e.g. kuliner, fashion, retail, manufaktur, jasa)",
+    ),
+  location: zod.string(),
+  employeeCount: zod.number(),
+  description: zod.string().optional(),
+  createdAt: zod.coerce.date(),
+  updatedAt: zod.coerce.date(),
+});
+export const ListBusinessesResponse = zod.array(ListBusinessesResponseItem);
+
+/**
+ * @summary Create or update a business profile
+ */
+export const CreateBusinessBody = zod.object({
+  name: zod.string(),
+  sector: zod.string(),
+  location: zod.string(),
+  employeeCount: zod.number(),
+  description: zod.string().optional(),
+});
+
+/**
+ * @summary Get a business by ID
+ */
+export const GetBusinessParams = zod.object({
+  id: zod.coerce.number(),
+});
+
+export const GetBusinessResponse = zod.object({
+  id: zod.number(),
+  name: zod.string(),
+  sector: zod.string(),
+  location: zod.string(),
+  employeeCount: zod.number(),
+  description: zod.string().optional(),
+  createdAt: zod.coerce.date(),
+  updatedAt: zod.coerce.date(),
+  latestAuditId: zod.number().nullish(),
+  latestTotalEmissions: zod
+    .number()
+    .nullish()
+    .describe("Total CO2e in tonnes per year"),
+  emissionsTrend: zod
+    .number()
+    .nullish()
+    .describe("Percentage change vs previous audit"),
+  actionItemsCompleted: zod.number(),
+  actionItemsTotal: zod.number(),
+});
+
+/**
+ * @summary Update a business profile
+ */
+export const UpdateBusinessParams = zod.object({
+  id: zod.coerce.number(),
+});
+
+export const UpdateBusinessBody = zod.object({
+  name: zod.string(),
+  sector: zod.string(),
+  location: zod.string(),
+  employeeCount: zod.number(),
+  description: zod.string().optional(),
+});
+
+export const UpdateBusinessResponse = zod.object({
+  id: zod.number(),
+  name: zod.string(),
+  sector: zod
+    .string()
+    .describe(
+      "Business sector (e.g. kuliner, fashion, retail, manufaktur, jasa)",
+    ),
+  location: zod.string(),
+  employeeCount: zod.number(),
+  description: zod.string().optional(),
+  createdAt: zod.coerce.date(),
+  updatedAt: zod.coerce.date(),
+});
+
+/**
+ * @summary List all audits for a business
+ */
+export const ListAuditsParams = zod.object({
+  id: zod.coerce.number(),
+});
+
+export const ListAuditsResponseItem = zod.object({
+  id: zod.number(),
+  businessId: zod.number(),
+  totalEmissions: zod.number().describe("Total CO2e in tonnes per year"),
+  period: zod.string().describe("e.g. 2024-Q1, 2024-Annual"),
+  createdAt: zod.coerce.date(),
+});
+export const ListAuditsResponse = zod.array(ListAuditsResponseItem);
+
+/**
+ * @summary Submit a carbon audit for a business
+ */
+export const CreateAuditParams = zod.object({
+  id: zod.coerce.number(),
+});
+
+export const CreateAuditBody = zod.object({
+  period: zod.string().describe("Reporting period e.g. 2024-Annual"),
+  electricityKwh: zod
+    .number()
+    .describe("Monthly electricity consumption in kWh"),
+  fuelLiters: zod.number().describe("Monthly fuel consumption in liters"),
+  wasteKg: zod.number().describe("Monthly waste generated in kg"),
+  supplyChainSpendIdr: zod
+    .number()
+    .optional()
+    .describe("Monthly supply chain spend in IDR"),
+  vehicleCount: zod
+    .number()
+    .optional()
+    .describe("Number of operational vehicles"),
+  deliveriesPerMonth: zod
+    .number()
+    .optional()
+    .describe("Number of deliveries per month"),
+});
+
+/**
+ * @summary Get the latest audit result with full breakdown
+ */
+export const GetLatestAuditParams = zod.object({
+  id: zod.coerce.number(),
+});
+
+export const GetLatestAuditResponse = zod.object({
+  id: zod.number(),
+  businessId: zod.number(),
+  totalEmissions: zod.number(),
+  period: zod.string(),
+  createdAt: zod.coerce.date(),
+  energyEmissions: zod.number().describe("CO2e from electricity\/energy"),
+  transportEmissions: zod.number().describe("CO2e from transportation"),
+  wasteEmissions: zod.number().describe("CO2e from waste"),
+  supplyChainEmissions: zod.number().describe("CO2e from supply chain"),
+  electricityKwh: zod.number(),
+  fuelLiters: zod.number(),
+  wasteKg: zod.number(),
+  aiInsights: zod
+    .string()
+    .optional()
+    .describe("AI-generated insights about the audit"),
+});
+
+/**
+ * @summary Get AI-generated action plan for a business
+ */
+export const GetActionPlanParams = zod.object({
+  id: zod.coerce.number(),
+});
+
+export const GetActionPlanResponse = zod.object({
+  id: zod.number(),
+  businessId: zod.number(),
+  auditId: zod.number(),
+  summary: zod.string().describe("AI-generated summary of the plan"),
+  totalPotentialReduction: zod
+    .number()
+    .describe("Estimated total CO2e reduction in tonnes"),
+  createdAt: zod.coerce.date(),
+  items: zod.array(
+    zod.object({
+      id: zod.number(),
+      planId: zod.number(),
+      title: zod.string(),
+      description: zod.string(),
+      category: zod
+        .string()
+        .describe("energi | transportasi | sampah | supply_chain"),
+      priority: zod.string().describe("quick_win | medium_term | long_term"),
+      estimatedReduction: zod
+        .number()
+        .describe("Estimated CO2e reduction in tonnes"),
+      estimatedCostIdr: zod
+        .number()
+        .optional()
+        .describe("Estimated implementation cost in IDR"),
+      reasoning: zod
+        .string()
+        .describe("AI explanation for why this action was recommended"),
+      status: zod.string().describe("pending | in_progress | completed"),
+      completedAt: zod.coerce.date().nullish(),
+    }),
+  ),
+});
+
+/**
+ * @summary Generate a new AI action plan based on latest audit
+ */
+export const GenerateActionPlanParams = zod.object({
+  id: zod.coerce.number(),
+});
+
+/**
+ * @summary Update the status of an action item
+ */
+export const UpdateActionItemParams = zod.object({
+  id: zod.coerce.number(),
+  itemId: zod.coerce.number(),
+});
+
+export const UpdateActionItemBody = zod.object({
+  status: zod.string().describe("pending | in_progress | completed"),
+});
+
+export const UpdateActionItemResponse = zod.object({
+  id: zod.number(),
+  planId: zod.number(),
+  title: zod.string(),
+  description: zod.string(),
+  category: zod
+    .string()
+    .describe("energi | transportasi | sampah | supply_chain"),
+  priority: zod.string().describe("quick_win | medium_term | long_term"),
+  estimatedReduction: zod
+    .number()
+    .describe("Estimated CO2e reduction in tonnes"),
+  estimatedCostIdr: zod
+    .number()
+    .optional()
+    .describe("Estimated implementation cost in IDR"),
+  reasoning: zod
+    .string()
+    .describe("AI explanation for why this action was recommended"),
+  status: zod.string().describe("pending | in_progress | completed"),
+  completedAt: zod.coerce.date().nullish(),
+});
+
+/**
+ * @summary Get green supplier recommendations for a business
+ */
+export const GetSupplierRecommendationsParams = zod.object({
+  id: zod.coerce.number(),
+});
+
+export const GetSupplierRecommendationsResponseItem = zod.object({
+  id: zod.number(),
+  businessId: zod.number(),
+  name: zod.string(),
+  category: zod.string().describe("energi | bahan_baku | packaging | logistik"),
+  description: zod.string(),
+  greenCertification: zod.string().nullish(),
+  location: zod.string(),
+  estimatedEmissionReduction: zod
+    .number()
+    .describe("Estimated CO2e reduction if switched to this supplier"),
+  reasoning: zod.string(),
+  website: zod.string().nullish(),
+});
+export const GetSupplierRecommendationsResponse = zod.array(
+  GetSupplierRecommendationsResponseItem,
+);
+
+/**
+ * @summary Get monthly progress records for a business
+ */
+export const GetProgressHistoryParams = zod.object({
+  id: zod.coerce.number(),
+});
+
+export const GetProgressHistoryResponseItem = zod.object({
+  id: zod.number(),
+  businessId: zod.number(),
+  month: zod.string().describe("e.g. 2024-01"),
+  actualEmissions: zod.number().describe("Actual CO2e this month in tonnes"),
+  baselineEmissions: zod.number().describe("Baseline CO2e for comparison"),
+  reductionPercent: zod.number().describe("Percentage reduction vs baseline"),
+  notes: zod.string().nullish(),
+  createdAt: zod.coerce.date(),
+});
+export const GetProgressHistoryResponse = zod.array(
+  GetProgressHistoryResponseItem,
+);
+
+/**
+ * @summary Log a monthly progress update
+ */
+export const LogProgressParams = zod.object({
+  id: zod.coerce.number(),
+});
+
+export const LogProgressBody = zod.object({
+  month: zod.string(),
+  actualEmissions: zod.number(),
+  baselineEmissions: zod.number(),
+  notes: zod.string().optional(),
+});
+
+/**
+ * @summary Get AI-generated ESG report for a business
+ */
+export const GetEsgReportParams = zod.object({
+  id: zod.coerce.number(),
+});
+
+export const GetEsgReportResponse = zod.object({
+  id: zod.number(),
+  businessId: zod.number(),
+  period: zod.string(),
+  totalEmissions: zod.number(),
+  reductionFromBaseline: zod.number(),
+  environmentalScore: zod.number(),
+  socialScore: zod.number(),
+  governanceScore: zod.number(),
+  overallScore: zod.number(),
+  executiveSummary: zod.string(),
+  environmentalSection: zod.string(),
+  socialSection: zod.string(),
+  governanceSection: zod.string(),
+  recommendations: zod.string(),
+  createdAt: zod.coerce.date(),
+});
+
+/**
+ * @summary Generate a new AI ESG report
+ */
+export const GenerateEsgReportParams = zod.object({
+  id: zod.coerce.number(),
+});
+
+/**
+ * @summary Get aggregate dashboard summary stats
+ */
+export const GetDashboardSummaryResponse = zod.object({
+  totalBusinesses: zod.number(),
+  totalEmissionsTonnes: zod
+    .number()
+    .describe("Total current CO2e across all businesses"),
+  avgReductionPercent: zod
+    .number()
+    .describe("Average reduction percentage across all businesses"),
+  completedActions: zod.number(),
+  totalActions: zod.number(),
+});
+
+/**
+ * @summary List all conversations
+ */
+export const ListOpenaiConversationsResponseItem = zod.object({
+  id: zod.number(),
+  title: zod.string(),
+  createdAt: zod.coerce.date(),
+});
+export const ListOpenaiConversationsResponse = zod.array(
+  ListOpenaiConversationsResponseItem,
+);
+
+/**
+ * @summary Create a new conversation
+ */
+export const CreateOpenaiConversationBody = zod.object({
+  title: zod.string(),
+});
+
+/**
+ * @summary Get conversation with messages
+ */
+export const GetOpenaiConversationParams = zod.object({
+  id: zod.coerce.number(),
+});
+
+export const GetOpenaiConversationResponse = zod.object({
+  id: zod.number(),
+  title: zod.string(),
+  createdAt: zod.coerce.date(),
+  messages: zod.array(
+    zod.object({
+      id: zod.number(),
+      conversationId: zod.number(),
+      role: zod.string(),
+      content: zod.string(),
+      createdAt: zod.coerce.date(),
+    }),
+  ),
+});
+
+/**
+ * @summary Delete a conversation
+ */
+export const DeleteOpenaiConversationParams = zod.object({
+  id: zod.coerce.number(),
+});
+
+/**
+ * @summary List messages in a conversation
+ */
+export const ListOpenaiMessagesParams = zod.object({
+  id: zod.coerce.number(),
+});
+
+export const ListOpenaiMessagesResponseItem = zod.object({
+  id: zod.number(),
+  conversationId: zod.number(),
+  role: zod.string(),
+  content: zod.string(),
+  createdAt: zod.coerce.date(),
+});
+export const ListOpenaiMessagesResponse = zod.array(
+  ListOpenaiMessagesResponseItem,
+);
+
+/**
+ * @summary Send a text message and receive a streaming text response
+ */
+export const SendOpenaiMessageParams = zod.object({
+  id: zod.coerce.number(),
+});
+
+export const SendOpenaiMessageBody = zod.object({
+  content: zod.string(),
+});
+
+/**
+ * @summary Generate an image from a text prompt
+ */
+export const GenerateOpenaiImageBody = zod.object({
+  prompt: zod.string(),
+  size: zod.enum(["1024x1024", "512x512", "256x256"]).optional(),
+});
+
+export const GenerateOpenaiImageResponse = zod.object({
+  b64_json: zod.string(),
+});

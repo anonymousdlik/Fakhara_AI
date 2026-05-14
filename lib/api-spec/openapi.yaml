@@ -10,6 +10,18 @@ servers:
 tags:
   - name: health
     description: Health operations
+  - name: businesses
+    description: UMKM business profiles
+  - name: audits
+    description: Carbon footprint audits
+  - name: action-plans
+    description: Carbon reduction action plans
+  - name: suppliers
+    description: Green supplier recommendations
+  - name: progress
+    description: Monthly progress tracking
+  - name: openai
+    description: OpenAI AI chat and agent operations
 paths:
   /healthz:
     get:
@@ -24,6 +36,466 @@ paths:
             application/json:
               schema:
                 $ref: "#/components/schemas/HealthStatus"
+
+  /businesses:
+    get:
+      operationId: listBusinesses
+      tags: [businesses]
+      summary: List all businesses
+      responses:
+        "200":
+          description: List of businesses
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: "#/components/schemas/Business"
+    post:
+      operationId: createBusiness
+      tags: [businesses]
+      summary: Create or update a business profile
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/CreateBusinessBody"
+      responses:
+        "201":
+          description: Created business
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Business"
+
+  /businesses/{id}:
+    get:
+      operationId: getBusiness
+      tags: [businesses]
+      summary: Get a business by ID
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: integer
+      responses:
+        "200":
+          description: Business with latest audit summary
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/BusinessWithSummary"
+        "404":
+          description: Not found
+    put:
+      operationId: updateBusiness
+      tags: [businesses]
+      summary: Update a business profile
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: integer
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/CreateBusinessBody"
+      responses:
+        "200":
+          description: Updated business
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Business"
+
+  /businesses/{id}/audits:
+    get:
+      operationId: listAudits
+      tags: [audits]
+      summary: List all audits for a business
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: integer
+      responses:
+        "200":
+          description: List of audits
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: "#/components/schemas/Audit"
+    post:
+      operationId: createAudit
+      tags: [audits]
+      summary: Submit a carbon audit for a business
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: integer
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/CreateAuditBody"
+      responses:
+        "201":
+          description: Created audit with calculated footprint
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/AuditWithBreakdown"
+
+  /businesses/{id}/audits/latest:
+    get:
+      operationId: getLatestAudit
+      tags: [audits]
+      summary: Get the latest audit result with full breakdown
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: integer
+      responses:
+        "200":
+          description: Latest audit with breakdown
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/AuditWithBreakdown"
+        "404":
+          description: No audit found
+
+  /businesses/{id}/action-plan:
+    get:
+      operationId: getActionPlan
+      tags: [action-plans]
+      summary: Get AI-generated action plan for a business
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: integer
+      responses:
+        "200":
+          description: Action plan with prioritized steps
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ActionPlan"
+        "404":
+          description: No action plan yet
+    post:
+      operationId: generateActionPlan
+      tags: [action-plans]
+      summary: Generate a new AI action plan based on latest audit
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: integer
+      responses:
+        "201":
+          description: Generated action plan
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ActionPlan"
+
+  /businesses/{id}/action-plan/items/{itemId}:
+    patch:
+      operationId: updateActionItem
+      tags: [action-plans]
+      summary: Update the status of an action item
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: integer
+        - name: itemId
+          in: path
+          required: true
+          schema:
+            type: integer
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/UpdateActionItemBody"
+      responses:
+        "200":
+          description: Updated action item
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ActionItem"
+
+  /businesses/{id}/suppliers:
+    get:
+      operationId: getSupplierRecommendations
+      tags: [suppliers]
+      summary: Get green supplier recommendations for a business
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: integer
+      responses:
+        "200":
+          description: List of supplier recommendations
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: "#/components/schemas/SupplierRecommendation"
+
+  /businesses/{id}/progress:
+    get:
+      operationId: getProgressHistory
+      tags: [progress]
+      summary: Get monthly progress records for a business
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: integer
+      responses:
+        "200":
+          description: Monthly progress history
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: "#/components/schemas/ProgressRecord"
+    post:
+      operationId: logProgress
+      tags: [progress]
+      summary: Log a monthly progress update
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: integer
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/LogProgressBody"
+      responses:
+        "201":
+          description: Logged progress record
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ProgressRecord"
+
+  /businesses/{id}/esg-report:
+    get:
+      operationId: getEsgReport
+      tags: [businesses]
+      summary: Get AI-generated ESG report for a business
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: integer
+      responses:
+        "200":
+          description: ESG report content
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/EsgReport"
+        "404":
+          description: No report yet
+    post:
+      operationId: generateEsgReport
+      tags: [businesses]
+      summary: Generate a new AI ESG report
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: integer
+      responses:
+        "201":
+          description: Generated ESG report
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/EsgReport"
+
+  /dashboard/summary:
+    get:
+      operationId: getDashboardSummary
+      tags: [businesses]
+      summary: Get aggregate dashboard summary stats
+      responses:
+        "200":
+          description: Dashboard summary
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/DashboardSummary"
+
+  /openai/conversations:
+    get:
+      operationId: listOpenaiConversations
+      tags: [openai]
+      summary: List all conversations
+      responses:
+        "200":
+          description: List of conversations
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: "#/components/schemas/OpenaiConversation"
+    post:
+      operationId: createOpenaiConversation
+      tags: [openai]
+      summary: Create a new conversation
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/CreateOpenaiConversationBody"
+      responses:
+        "201":
+          description: Created conversation
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/OpenaiConversation"
+  /openai/conversations/{id}:
+    get:
+      operationId: getOpenaiConversation
+      tags: [openai]
+      summary: Get conversation with messages
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: integer
+      responses:
+        "200":
+          description: Conversation with messages
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/OpenaiConversationWithMessages"
+        "404":
+          description: Not found
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/OpenaiError"
+    delete:
+      operationId: deleteOpenaiConversation
+      tags: [openai]
+      summary: Delete a conversation
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: integer
+      responses:
+        "204":
+          description: Deleted
+        "404":
+          description: Not found
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/OpenaiError"
+  /openai/conversations/{id}/messages:
+    get:
+      operationId: listOpenaiMessages
+      tags: [openai]
+      summary: List messages in a conversation
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: integer
+      responses:
+        "200":
+          description: List of messages
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: "#/components/schemas/OpenaiMessage"
+    post:
+      operationId: sendOpenaiMessage
+      tags: [openai]
+      summary: Send a text message and receive a streaming text response
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: integer
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/SendOpenaiMessageBody"
+      responses:
+        "200":
+          description: SSE stream of assistant text chunks
+          content:
+            text/event-stream: {}
+  /openai/generate-image:
+    post:
+      operationId: generateOpenaiImage
+      tags: [openai]
+      summary: Generate an image from a text prompt
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/GenerateOpenaiImageBody"
+      responses:
+        "200":
+          description: Generated image data
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/GenerateOpenaiImageResponse"
+
 components:
   schemas:
     HealthStatus:
@@ -34,3 +506,545 @@ components:
       required:
         - status
 
+    Business:
+      type: object
+      properties:
+        id:
+          type: integer
+        name:
+          type: string
+        sector:
+          type: string
+          description: "Business sector (e.g. kuliner, fashion, retail, manufaktur, jasa)"
+        location:
+          type: string
+        employeeCount:
+          type: integer
+        description:
+          type: string
+        createdAt:
+          type: string
+          format: date-time
+        updatedAt:
+          type: string
+          format: date-time
+      required:
+        - id
+        - name
+        - sector
+        - location
+        - employeeCount
+        - createdAt
+        - updatedAt
+
+    BusinessWithSummary:
+      type: object
+      properties:
+        id:
+          type: integer
+        name:
+          type: string
+        sector:
+          type: string
+        location:
+          type: string
+        employeeCount:
+          type: integer
+        description:
+          type: string
+        createdAt:
+          type: string
+          format: date-time
+        updatedAt:
+          type: string
+          format: date-time
+        latestAuditId:
+          type: integer
+          nullable: true
+        latestTotalEmissions:
+          type: number
+          nullable: true
+          description: "Total CO2e in tonnes per year"
+        emissionsTrend:
+          type: number
+          nullable: true
+          description: "Percentage change vs previous audit"
+        actionItemsCompleted:
+          type: integer
+        actionItemsTotal:
+          type: integer
+      required:
+        - id
+        - name
+        - sector
+        - location
+        - employeeCount
+        - createdAt
+        - updatedAt
+        - actionItemsCompleted
+        - actionItemsTotal
+
+    CreateBusinessBody:
+      type: object
+      properties:
+        name:
+          type: string
+        sector:
+          type: string
+        location:
+          type: string
+        employeeCount:
+          type: integer
+        description:
+          type: string
+      required:
+        - name
+        - sector
+        - location
+        - employeeCount
+
+    Audit:
+      type: object
+      properties:
+        id:
+          type: integer
+        businessId:
+          type: integer
+        totalEmissions:
+          type: number
+          description: "Total CO2e in tonnes per year"
+        period:
+          type: string
+          description: "e.g. 2024-Q1, 2024-Annual"
+        createdAt:
+          type: string
+          format: date-time
+      required:
+        - id
+        - businessId
+        - totalEmissions
+        - period
+        - createdAt
+
+    AuditWithBreakdown:
+      type: object
+      properties:
+        id:
+          type: integer
+        businessId:
+          type: integer
+        totalEmissions:
+          type: number
+        period:
+          type: string
+        createdAt:
+          type: string
+          format: date-time
+        energyEmissions:
+          type: number
+          description: "CO2e from electricity/energy"
+        transportEmissions:
+          type: number
+          description: "CO2e from transportation"
+        wasteEmissions:
+          type: number
+          description: "CO2e from waste"
+        supplyChainEmissions:
+          type: number
+          description: "CO2e from supply chain"
+        electricityKwh:
+          type: number
+        fuelLiters:
+          type: number
+        wasteKg:
+          type: number
+        aiInsights:
+          type: string
+          description: "AI-generated insights about the audit"
+      required:
+        - id
+        - businessId
+        - totalEmissions
+        - period
+        - createdAt
+        - energyEmissions
+        - transportEmissions
+        - wasteEmissions
+        - supplyChainEmissions
+        - electricityKwh
+        - fuelLiters
+        - wasteKg
+
+    CreateAuditBody:
+      type: object
+      properties:
+        period:
+          type: string
+          description: "Reporting period e.g. 2024-Annual"
+        electricityKwh:
+          type: number
+          description: "Monthly electricity consumption in kWh"
+        fuelLiters:
+          type: number
+          description: "Monthly fuel consumption in liters"
+        wasteKg:
+          type: number
+          description: "Monthly waste generated in kg"
+        supplyChainSpendIdr:
+          type: number
+          description: "Monthly supply chain spend in IDR"
+        vehicleCount:
+          type: integer
+          description: "Number of operational vehicles"
+        deliveriesPerMonth:
+          type: integer
+          description: "Number of deliveries per month"
+      required:
+        - period
+        - electricityKwh
+        - fuelLiters
+        - wasteKg
+
+    ActionPlan:
+      type: object
+      properties:
+        id:
+          type: integer
+        businessId:
+          type: integer
+        auditId:
+          type: integer
+        summary:
+          type: string
+          description: "AI-generated summary of the plan"
+        totalPotentialReduction:
+          type: number
+          description: "Estimated total CO2e reduction in tonnes"
+        createdAt:
+          type: string
+          format: date-time
+        items:
+          type: array
+          items:
+            $ref: "#/components/schemas/ActionItem"
+      required:
+        - id
+        - businessId
+        - auditId
+        - summary
+        - totalPotentialReduction
+        - createdAt
+        - items
+
+    ActionItem:
+      type: object
+      properties:
+        id:
+          type: integer
+        planId:
+          type: integer
+        title:
+          type: string
+        description:
+          type: string
+        category:
+          type: string
+          description: "energi | transportasi | sampah | supply_chain"
+        priority:
+          type: string
+          description: "quick_win | medium_term | long_term"
+        estimatedReduction:
+          type: number
+          description: "Estimated CO2e reduction in tonnes"
+        estimatedCostIdr:
+          type: number
+          description: "Estimated implementation cost in IDR"
+        reasoning:
+          type: string
+          description: "AI explanation for why this action was recommended"
+        status:
+          type: string
+          description: "pending | in_progress | completed"
+        completedAt:
+          type: string
+          format: date-time
+          nullable: true
+      required:
+        - id
+        - planId
+        - title
+        - description
+        - category
+        - priority
+        - estimatedReduction
+        - reasoning
+        - status
+
+    UpdateActionItemBody:
+      type: object
+      properties:
+        status:
+          type: string
+          description: "pending | in_progress | completed"
+      required:
+        - status
+
+    SupplierRecommendation:
+      type: object
+      properties:
+        id:
+          type: integer
+        businessId:
+          type: integer
+        name:
+          type: string
+        category:
+          type: string
+          description: "energi | bahan_baku | packaging | logistik"
+        description:
+          type: string
+        greenCertification:
+          type: string
+          nullable: true
+        location:
+          type: string
+        estimatedEmissionReduction:
+          type: number
+          description: "Estimated CO2e reduction if switched to this supplier"
+        reasoning:
+          type: string
+        website:
+          type: string
+          nullable: true
+      required:
+        - id
+        - businessId
+        - name
+        - category
+        - description
+        - location
+        - estimatedEmissionReduction
+        - reasoning
+
+    ProgressRecord:
+      type: object
+      properties:
+        id:
+          type: integer
+        businessId:
+          type: integer
+        month:
+          type: string
+          description: "e.g. 2024-01"
+        actualEmissions:
+          type: number
+          description: "Actual CO2e this month in tonnes"
+        baselineEmissions:
+          type: number
+          description: "Baseline CO2e for comparison"
+        reductionPercent:
+          type: number
+          description: "Percentage reduction vs baseline"
+        notes:
+          type: string
+          nullable: true
+        createdAt:
+          type: string
+          format: date-time
+      required:
+        - id
+        - businessId
+        - month
+        - actualEmissions
+        - baselineEmissions
+        - reductionPercent
+        - createdAt
+
+    LogProgressBody:
+      type: object
+      properties:
+        month:
+          type: string
+        actualEmissions:
+          type: number
+        baselineEmissions:
+          type: number
+        notes:
+          type: string
+      required:
+        - month
+        - actualEmissions
+        - baselineEmissions
+
+    EsgReport:
+      type: object
+      properties:
+        id:
+          type: integer
+        businessId:
+          type: integer
+        period:
+          type: string
+        totalEmissions:
+          type: number
+        reductionFromBaseline:
+          type: number
+        environmentalScore:
+          type: integer
+        socialScore:
+          type: integer
+        governanceScore:
+          type: integer
+        overallScore:
+          type: integer
+        executiveSummary:
+          type: string
+        environmentalSection:
+          type: string
+        socialSection:
+          type: string
+        governanceSection:
+          type: string
+        recommendations:
+          type: string
+        createdAt:
+          type: string
+          format: date-time
+      required:
+        - id
+        - businessId
+        - period
+        - totalEmissions
+        - reductionFromBaseline
+        - environmentalScore
+        - socialScore
+        - governanceScore
+        - overallScore
+        - executiveSummary
+        - environmentalSection
+        - socialSection
+        - governanceSection
+        - recommendations
+        - createdAt
+
+    DashboardSummary:
+      type: object
+      properties:
+        totalBusinesses:
+          type: integer
+        totalEmissionsTonnes:
+          type: number
+          description: "Total current CO2e across all businesses"
+        avgReductionPercent:
+          type: number
+          description: "Average reduction percentage across all businesses"
+        completedActions:
+          type: integer
+        totalActions:
+          type: integer
+      required:
+        - totalBusinesses
+        - totalEmissionsTonnes
+        - avgReductionPercent
+        - completedActions
+        - totalActions
+
+    OpenaiConversation:
+      type: object
+      properties:
+        id:
+          type: integer
+        title:
+          type: string
+        createdAt:
+          type: string
+          format: date-time
+      required:
+        - id
+        - title
+        - createdAt
+    OpenaiMessage:
+      type: object
+      properties:
+        id:
+          type: integer
+        conversationId:
+          type: integer
+        role:
+          type: string
+        content:
+          type: string
+        createdAt:
+          type: string
+          format: date-time
+      required:
+        - id
+        - conversationId
+        - role
+        - content
+        - createdAt
+    CreateOpenaiConversationBody:
+      type: object
+      properties:
+        title:
+          type: string
+      required:
+        - title
+    SendOpenaiMessageBody:
+      type: object
+      properties:
+        content:
+          type: string
+      required:
+        - content
+    SendOpenaiVoiceMessageBody:
+      type: object
+      properties:
+        audio:
+          type: string
+          description: Base64-encoded audio data
+      required:
+        - audio
+    OpenaiConversationWithMessages:
+      type: object
+      properties:
+        id:
+          type: integer
+        title:
+          type: string
+        createdAt:
+          type: string
+          format: date-time
+        messages:
+          type: array
+          items:
+            $ref: "#/components/schemas/OpenaiMessage"
+      required:
+        - id
+        - title
+        - createdAt
+        - messages
+    GenerateOpenaiImageBody:
+      type: object
+      properties:
+        prompt:
+          type: string
+        size:
+          type: string
+          enum: ["1024x1024", "512x512", "256x256"]
+      required:
+        - prompt
+    GenerateOpenaiImageResponse:
+      type: object
+      properties:
+        b64_json:
+          type: string
+      required:
+        - b64_json
+    OpenaiError:
+      type: object
+      properties:
+        error:
+          type: string
+      required:
+        - error
