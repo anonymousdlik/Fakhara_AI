@@ -182,7 +182,15 @@ export default function Dashboard() {
         )}
 
         <div>
-          <h2 className="text-xl font-semibold text-gray-800 mb-4">Daftar Bisnis UMKM</h2>
+          <div className="flex items-center justify-between mb-4">
+            <h2 className="text-xl font-semibold text-gray-800">Daftar Bisnis UMKM</h2>
+            <Link href="/">
+              <Button variant="outline" className="bg-white gap-2">
+                <ArrowRight className="w-4 h-4 rotate-180" />
+                Kembali ke Landing
+              </Button>
+            </Link>
+          </div>
           {isLoading ? (
             <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
               {[1, 2, 3].map((i) => (
