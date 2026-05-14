@@ -1,0 +1,8 @@
+uploads = []
+generated = []
+
+[[outputs]]
+id = "1mkG8rescdxoyEzRGsVGf"
+uri = "file://TEKNOLOGI.md"
+type = "text"
+title = "Dokumentasi Teknologi — Fakhara AI"
