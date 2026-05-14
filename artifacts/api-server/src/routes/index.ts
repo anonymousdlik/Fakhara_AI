@@ -7,6 +7,7 @@ import suppliersRouter from "./suppliers";
 import progressRouter from "./progress";
 import esgReportsRouter from "./esgReports";
 import agentRouter from "./agent";
+import greenlendRouter from "./greenlend";
 
 const router: IRouter = Router();
 
@@ -18,5 +19,6 @@ router.use(suppliersRouter);
 router.use(progressRouter);
 router.use(esgReportsRouter);
 router.use(agentRouter);
+router.use(greenlendRouter);
 
 export default router;

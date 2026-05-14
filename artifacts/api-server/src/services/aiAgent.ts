@@ -339,6 +339,115 @@ Buat 6-8 aksi prioritas. Format JSON:
   return safeJsonParse<ActionPlanAI>(content, "Gagal mem-parse rencana aksi AI");
 }
 
+export interface GreenLendInput {
+  businessName: string;
+  sector: string;
+  location: string;
+  employeeCount: number;
+  description?: string | null;
+  totalEmissions: number;
+  energyEmissions: number;
+  transportEmissions: number;
+  wasteEmissions: number;
+  hasRenewableEnergy: boolean;
+  hasWasteRecycling: boolean;
+  hasOrganicPractices: boolean;
+  hasFairWages: boolean;
+  womenCount: number;
+  communityImpact: number;
+  hasOnlinePlatform: boolean;
+  monthlyTxCount: number;
+  finalScore: number;
+  sdgScore: number;
+  loanEligible: boolean;
+  maxLoanIdr: number;
+  interestRate: number;
+}
+
+export interface GreenLendAnalysisResult {
+  strengths: string[];
+  gaps: { issue: string; impact: string; action: string }[];
+  quickWins: string[];
+  scoreBreakdown: string;
+  timeToImprove: string;
+  motivationalNote: string;
+}
+
+export async function generateGreenLendAnalysis(
+  input: GreenLendInput,
+): Promise<GreenLendAnalysisResult> {
+  const response = await openai.chat.completions.create({
+    model: MODEL,
+    max_completion_tokens: 1500,
+    response_format: { type: "json_object" },
+    messages: [
+      {
+        role: "system",
+        content: `Kamu adalah konsultan keuangan mikro dan keberlanjutan yang membantu UMKM Indonesia meningkatkan akses modal melalui skor SDG/ESG platform GreenLend. GreenLend menggunakan formula: Skor Akhir = (Tradisional×20%) + (Data Alternatif×50%) + (SDG×30%). UMKM dengan skor ≥50 layak dapat pinjaman, ≥80 sampai Rp50jt dengan bunga 12%. Berikan analisa yang konkret, actionable, dan memotivasi dalam Bahasa Indonesia.`,
+      },
+      {
+        role: "user",
+        content: `Analisa profil UMKM berikut untuk kelayakan GreenLend:
+
+Bisnis: ${input.businessName} (${input.sector}, ${input.location})
+Karyawan: ${input.employeeCount} orang
+Deskripsi: ${input.description ?? "-"}
+
+Data karbon audit Fakhara AI:
+- Total emisi: ${input.totalEmissions.toFixed(3)} ton CO₂e/tahun
+- Emisi energi: ${input.energyEmissions.toFixed(3)} ton
+- Emisi transportasi: ${input.transportEmissions.toFixed(3)} ton
+- Emisi sampah: ${input.wasteEmissions.toFixed(3)} ton
+
+Faktor hijau:
+- Energi terbarukan: ${input.hasRenewableEnergy ? "YA" : "TIDAK"}
+- Daur ulang sampah: ${input.hasWasteRecycling ? "YA" : "TIDAK"}
+- Praktik organik: ${input.hasOrganicPractices ? "YA" : "TIDAK"}
+- Upah layak: ${input.hasFairWages ? "YA" : "TIDAK"}
+- Karyawan wanita: ${input.womenCount} orang
+- Dampak komunitas (skala 1-10): ${input.communityImpact}
+- Punya toko online (Tokopedia/Shopee/dll): ${input.hasOnlinePlatform ? "YA" : "TIDAK"}
+- Estimasi transaksi digital/bulan: ${input.monthlyTxCount}
+
+Simulasi skor saat ini:
+- Skor Akhir GreenLend: ${input.finalScore.toFixed(1)}/100
+- Skor SDG: ${input.sdgScore.toFixed(1)}/70
+- Layak pinjaman: ${input.loanEligible ? `YA, maks Rp ${input.maxLoanIdr.toLocaleString("id-ID")} bunga ${input.interestRate}%` : "BELUM (skor <50)"}
+
+Hasilkan analisa JSON dengan format persis:
+{
+  "strengths": ["kekuatan1", "kekuatan2", "kekuatan3"],
+  "gaps": [
+    {
+      "issue": "masalah konkret",
+      "impact": "dampak ke skor: +X poin jika diperbaiki",
+      "action": "langkah konkret yang bisa dilakukan bulan ini"
+    }
+  ],
+  "quickWins": ["aksi cepat 1", "aksi cepat 2", "aksi cepat 3"],
+  "scoreBreakdown": "penjelasan singkat mengapa skor segini dan apa yang dominan",
+  "timeToImprove": "estimasi waktu realistis untuk mencapai skor 70+ dengan usaha konsisten",
+  "motivationalNote": "1-2 kalimat motivasi personal untuk UMKM ini"
+}`,
+      },
+    ],
+  });
+
+  const content = response.choices[0]?.message?.content;
+  if (!content) {
+    return {
+      strengths: ["Bisnis Anda sudah terdaftar dan melakukan audit karbon"],
+      gaps: [],
+      quickWins: ["Mulai dengan audit karbon rutin setiap bulan"],
+      scoreBreakdown: "Skor dihitung berdasarkan data audit dan profil bisnis.",
+      timeToImprove: "3-6 bulan dengan upaya konsisten",
+      motivationalNote: "Setiap langkah kecil menuju keberlanjutan adalah investasi masa depan.",
+    };
+  }
+
+  return safeJsonParse<GreenLendAnalysisResult>(content, "Gagal mem-parse analisa GreenLend");
+}
+
 export async function generateSupplierRecommendations(
   business: Business,
   breakdown: CarbonBreakdown,

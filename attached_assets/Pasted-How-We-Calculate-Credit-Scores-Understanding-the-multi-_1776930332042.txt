@@ -1,0 +1,106 @@
+How We Calculate Credit Scores
+Understanding the multi-factor algorithm behind GreenLend's fair and sustainable credit assessment
+
+Three-Component Scoring System
+Our algorithm evaluates applicants across three dimensions, weighted by real-world impact
+Traditional Credit Data
+20% Weight
+Limited weight for underserved populations without formal credit history
+
+Alternative Data Sources
+50% Weight
+Primary indicator: mobile payments, business presence, utilities, social proof
+
+SDG Impact Assessment
+30% Weight
+Sustainability bonus: carbon footprint, renewable energy, job creation, community impact
+
+Why This Distribution?
+We prioritize alternative data (50%) because traditional credit history is often unavailable for underserved populations. SDG scoring (30%) incentivizes sustainable practices, while traditional data (20%) provides baseline trust signals where available.
+
+1
+Traditional Credit Score (20%)
+Limited Formal Credit History
+Base score + utility payment adjustments
+Base Score
+40 points
+Starting point for individuals without formal credit history
+
+Utility Payment History
+Up to +20 points
+Electricity, water, and internet payment consistency over 24 months
+
+Score = min(20, (on-time_payments / 24) × 20)
+Maximum Traditional Score: 60/100
+Weighted contribution to final score: 12 points (60 × 0.20)
+
+2
+Alternative Data Score (50%)
+Mobile Payment History
+Up to 30 points
+Transaction volume: 15 points max (count / 100 × 15)
+On-time rate: 15 points max (ratio × 15)
+Score = min(30, tx_count/100 × 15 + on_time_ratio × 15)
+Business Presence
+Up to 25 points
+Google Maps rating: 15 points max (rating/5 × 15)
+Review count: 10 points max (count/10 × 10)
+Score = min(25, rating/5 × 15 + min(10, reviews/10 × 10))
+Utility Consistency
+Up to 20 points
+Electricity: On-time payments / 24 months
+Water & Internet: Combined consistency
+Score = min(20, (elec + water + inet) / 72 × 20)
+Social Proof
+Up to 15 points
+Community vouches: 3 points each
+Business references: 5 points each
+Score = min(15, vouches × 3 + refs × 5)
+Maximum Alternative Score: 90/100
+Weighted contribution to final score: 45 points (90 × 0.50)
+
+3
+SDG Impact Score (30%)
+Environmental Factors
+Carbon Footprint: Up to 15 points
+max(0, 15 - CO₂_tons/2)
+Renewable Energy: +10 points (boolean)
+Waste Recycling: +8 points (boolean)
+Organic Practices: +7 points (boolean)
+Social Impact Factors
+Job Creation: Up to 10 points
+min(10, jobs_created × 2)
+Women Employed: Up to 8 points
+min(8, women_count × 2)
+Fair Wages: +7 points (boolean)
+Community Impact: Up to 5 points
+(impact_score / 10) × 5
+Maximum SDG Score: 70/100
+Weighted contribution to final score: 21 points (70 × 0.30)
+
+Final Credit Score Formula
+Weighted sum of all three components
+
+Final Score = (Traditional × 0.20) + (Alternative × 0.50) + (SDG × 0.30)
+Range: 0-100 | Approval Threshold: ≥50 | Excellent: ≥80
+Loan Amount Eligibility
+• Score ≥80: Up to Rp 50,000,000
+• Score 70-79: Up to Rp 30,000,000
+• Score 60-69: Up to Rp 20,000,000
+• Score 50-59: Up to Rp 10,000,000
+Interest Rate Calculation
+• Score ≥80: 12% base rate
+• Score 70-79: 14% base rate
+• Score 60-69: 16% base rate
+• Score 50-59: 18% base rate
+• SDG bonus: -1% to -2% discount
+Fairness & Bias Mitigation
+How we ensure equitable access
+No Credit History Penalty
+Alternative data (50% weight) ensures those without bank accounts aren't automatically excluded
+
+Sustainability Rewards
+Green businesses get better rates (-2% interest) and higher approval odds through SDG scoring
+
+Transparent Criteria
+All factors and weights are public—borrowers know exactly what contributes to their score

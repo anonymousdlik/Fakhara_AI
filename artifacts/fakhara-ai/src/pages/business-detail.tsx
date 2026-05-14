@@ -32,7 +32,9 @@ import {
   Zap, Truck, Trash2, Package, CheckCircle2, Clock, PlayCircle,
   RefreshCw, FileText, Sparkles, BarChart3, ShoppingBag, Target,
   AlertTriangle, ChevronDown, ChevronUp, Pencil, X, Download,
-  MessageCircle, Wrench, Send, Bot, Camera, TreePine, Wallet, Award
+  MessageCircle, Wrench, Send, Bot, Camera, TreePine, Wallet, Award,
+  Landmark, Star, CircleDollarSign, ExternalLink, Info,
+  ShieldCheck, Lightbulb, BadgeCheck
 } from "lucide-react";
 import {
   Dialog,
@@ -1491,6 +1493,407 @@ function AssistantTab({ businessId }: { businessId: number }) {
   );
 }
 
+interface GreenLendForm {
+  hasRenewableEnergy: boolean;
+  hasWasteRecycling: boolean;
+  hasOrganicPractices: boolean;
+  hasFairWages: boolean;
+  womenCount: string;
+  communityImpact: string;
+  hasOnlinePlatform: boolean;
+  monthlyTxCount: string;
+}
+
+type GreenLendAnalysis = {
+  strengths: string[];
+  gaps: { issue: string; impact: string; action: string }[];
+  quickWins: string[];
+  scoreBreakdown: string;
+  timeToImprove: string;
+  motivationalNote: string;
+};
+
+function GreenLendTab({ businessId }: { businessId: number }) {
+  const { toast } = useToast();
+  const [form, setForm] = useState<GreenLendForm>({
+    hasRenewableEnergy: false,
+    hasWasteRecycling: false,
+    hasOrganicPractices: false,
+    hasFairWages: false,
+    womenCount: "0",
+    communityImpact: "5",
+    hasOnlinePlatform: false,
+    monthlyTxCount: "20",
+  });
+  const [analysis, setAnalysis] = useState<GreenLendAnalysis | null>(null);
+  const [analysisLoading, setAnalysisLoading] = useState(false);
+
+  const { data: audit } = useQuery({
+    queryKey: ["latest-audit", businessId],
+    queryFn: () => getLatestAudit(businessId),
+    retry: false,
+  });
+
+  const { data: business } = useQuery({
+    queryKey: ["business", businessId],
+    queryFn: () => getBusiness(businessId),
+  });
+
+  const totalEmissions = Number(audit?.totalEmissions ?? 0);
+  const energyEmissions = Number(audit?.energyEmissions ?? 0);
+  const transportEmissions = Number(audit?.transportEmissions ?? 0);
+  const wasteEmissions = Number(audit?.wasteEmissions ?? 0);
+  const employeeCount = business?.employeeCount ?? 1;
+
+  const traditionalRaw = audit ? 50 : 40;
+  const traditionalContrib = traditionalRaw * 0.2;
+
+  const altPresence = 10 + (form.hasOnlinePlatform ? 15 : 0) + Math.min(10, employeeCount * 0.4);
+  const altTx = Math.min(30, (Number(form.monthlyTxCount) / 100) * 30);
+  const altScore = Math.min(90, altPresence + altTx + 15);
+  const altContrib = altScore * 0.5;
+
+  const carbonScore = Math.max(0, 15 - totalEmissions / 2);
+  const renewableBonus = form.hasRenewableEnergy ? 10 : 0;
+  const wasteBonus = form.hasWasteRecycling ? 8 : 0;
+  const organicBonus = form.hasOrganicPractices ? 7 : 0;
+  const jobScore = Math.min(10, employeeCount * 2);
+  const womenScore = Math.min(8, Number(form.womenCount) * 2);
+  const fairWageBonus = form.hasFairWages ? 7 : 0;
+  const communityScore = (Math.min(10, Number(form.communityImpact)) / 10) * 5;
+  const sdgTotal = carbonScore + renewableBonus + wasteBonus + organicBonus + jobScore + womenScore + fairWageBonus + communityScore;
+  const sdgCapped = Math.min(70, sdgTotal);
+  const sdgContrib = sdgCapped * 0.3;
+
+  const finalScore = Math.min(100, traditionalContrib + altContrib + sdgContrib);
+
+  const loanEligible = finalScore >= 50;
+  const maxLoanIdr = finalScore >= 80 ? 50_000_000 : finalScore >= 70 ? 30_000_000 : finalScore >= 60 ? 20_000_000 : finalScore >= 50 ? 10_000_000 : 0;
+  const baseRate = finalScore >= 80 ? 12 : finalScore >= 70 ? 14 : finalScore >= 60 ? 16 : 18;
+  const sdgDiscount = sdgCapped >= 50 ? 2 : sdgCapped >= 30 ? 1 : 0;
+  const interestRate = baseRate - sdgDiscount;
+
+  const scoreColor = finalScore >= 80 ? "text-emerald-700" : finalScore >= 60 ? "text-blue-700" : finalScore >= 50 ? "text-amber-700" : "text-red-600";
+  const scoreLabel = finalScore >= 80 ? "Sangat Baik" : finalScore >= 70 ? "Baik" : finalScore >= 60 ? "Cukup" : finalScore >= 50 ? "Minimum" : "Belum Layak";
+  const scoreBg = finalScore >= 80 ? "bg-emerald-100 border-emerald-200" : finalScore >= 60 ? "bg-blue-100 border-blue-200" : finalScore >= 50 ? "bg-amber-100 border-amber-200" : "bg-red-100 border-red-200";
+
+  const CheckToggle = ({ checked, onChange, label, icon }: { checked: boolean; onChange: (v: boolean) => void; label: string; icon: React.ReactNode }) => (
+    <button
+      type="button"
+      onClick={() => onChange(!checked)}
+      className={`flex items-center gap-2 px-3 py-2.5 rounded-lg border text-sm font-medium transition-all text-left w-full ${checked ? "bg-teal-50 border-teal-400 text-teal-800" : "bg-gray-50 border-gray-200 text-gray-600 hover:bg-gray-100"}`}
+    >
+      <span className={`w-5 h-5 rounded flex items-center justify-center flex-shrink-0 ${checked ? "bg-teal-500" : "bg-gray-200"}`}>
+        {checked ? <CheckCircle2 className="w-3.5 h-3.5 text-white" /> : <X className="w-3.5 h-3.5 text-gray-400" />}
+      </span>
+      {icon}
+      <span>{label}</span>
+    </button>
+  );
+
+  const handleAnalysis = async () => {
+    if (!audit) {
+      toast({ title: "Perlu audit dulu", description: "Lakukan audit karbon terlebih dahulu di tab Audit Karbon", variant: "destructive" });
+      return;
+    }
+    setAnalysisLoading(true);
+    setAnalysis(null);
+    try {
+      const res = await fetch(`/api/businesses/${businessId}/greenlend-analysis`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          ...form,
+          womenCount: Number(form.womenCount),
+          communityImpact: Number(form.communityImpact),
+          monthlyTxCount: Number(form.monthlyTxCount),
+          finalScore,
+          sdgScore: sdgCapped,
+          loanEligible,
+          maxLoanIdr,
+          interestRate,
+        }),
+      });
+      if (!res.ok) {
+        const err = await res.json().catch(() => ({})) as { error?: string };
+        throw new Error(err.error ?? "Gagal menganalisa");
+      }
+      const data = await res.json() as GreenLendAnalysis;
+      setAnalysis(data);
+    } catch (err) {
+      toast({ title: "Gagal analisa AI", description: String(err), variant: "destructive" });
+    } finally {
+      setAnalysisLoading(false);
+    }
+  };
+
+  return (
+    <div className="space-y-5">
+      <Card className="border-0 shadow-sm bg-gradient-to-br from-teal-600 to-emerald-700 text-white overflow-hidden relative">
+        <CardContent className="pt-5 pb-5">
+          <div className="flex items-start gap-4">
+            <div className="w-12 h-12 bg-white/20 rounded-xl flex items-center justify-center flex-shrink-0">
+              <Landmark className="w-6 h-6 text-white" />
+            </div>
+            <div className="flex-1">
+              <div className="flex items-center gap-2 mb-1">
+                <h3 className="font-bold text-lg">Akses Modal Hijau via GreenLend</h3>
+                <Badge className="bg-white/20 text-white border-white/30 text-[10px]">Beta</Badge>
+              </div>
+              <p className="text-sm text-white/90 leading-relaxed mb-3">
+                GreenLend adalah platform keuangan mikro berbasis AI yang memberi pinjaman UMKM dengan mempertimbangkan <strong>dampak SDG/ESG</strong> — bukan hanya riwayat kredit. Makin hijau bisnis kamu, makin tinggi peluang dapat dana dengan bunga lebih rendah.
+              </p>
+              <div className="flex flex-wrap gap-2 text-xs">
+                <span className="bg-white/20 px-2 py-1 rounded-full">✓ Tanpa riwayat kredit formal</span>
+                <span className="bg-white/20 px-2 py-1 rounded-full">✓ Bunga 10–15%</span>
+                <span className="bg-white/20 px-2 py-1 rounded-full">✓ Sampai Rp50 juta</span>
+                <span className="bg-white/20 px-2 py-1 rounded-full">✓ Skor ESG = keuntungan</span>
+              </div>
+            </div>
+          </div>
+          <div className="mt-4 pt-4 border-t border-white/20 grid grid-cols-3 gap-3 text-center text-xs">
+            <div>
+              <p className="text-white/60">Bobot Tradisional</p>
+              <p className="font-bold text-base">20%</p>
+            </div>
+            <div>
+              <p className="text-white/60">Data Alternatif</p>
+              <p className="font-bold text-base">50%</p>
+            </div>
+            <div>
+              <p className="text-white/60">Skor SDG/Hijau</p>
+              <p className="font-bold text-base">30%</p>
+            </div>
+          </div>
+        </CardContent>
+      </Card>
+
+      {!audit && (
+        <Card className="border-0 shadow-sm bg-amber-50 border border-amber-200">
+          <CardContent className="py-4 flex items-center gap-3">
+            <AlertTriangle className="w-5 h-5 text-amber-600 flex-shrink-0" />
+            <p className="text-sm text-amber-800">Lakukan <strong>audit karbon</strong> terlebih dahulu di tab Audit Karbon. Data emisi Anda akan otomatis terpakai di simulasi ini.</p>
+          </CardContent>
+        </Card>
+      )}
+
+      {audit && (
+        <Card className="border-0 shadow-sm bg-teal-50 border border-teal-200">
+          <CardContent className="py-3 flex items-center gap-3">
+            <BadgeCheck className="w-4 h-4 text-teal-700 flex-shrink-0" />
+            <p className="text-xs text-teal-800">Data audit karbon terakhir ({audit.period}) sudah dimuat — total emisi <strong>{totalEmissions.toFixed(3)} ton CO₂e</strong>.</p>
+          </CardContent>
+        </Card>
+      )}
+
+      <div className="grid grid-cols-1 lg:grid-cols-2 gap-5">
+        <Card className="border-0 shadow-sm bg-white">
+          <CardHeader className="pb-3 pt-4">
+            <CardTitle className="text-sm font-semibold flex items-center gap-2">
+              <ShieldCheck className="w-4 h-4 text-teal-600" />
+              Profil Keberlanjutan
+            </CardTitle>
+            <p className="text-xs text-gray-500">Centang praktik yang sudah Anda jalankan</p>
+          </CardHeader>
+          <CardContent className="space-y-2.5">
+            <CheckToggle checked={form.hasRenewableEnergy} onChange={(v) => setForm((p) => ({ ...p, hasRenewableEnergy: v }))} label="Pakai energi terbarukan (solar, dll)" icon={<Zap className="w-3.5 h-3.5 text-yellow-500" />} />
+            <CheckToggle checked={form.hasWasteRecycling} onChange={(v) => setForm((p) => ({ ...p, hasWasteRecycling: v }))} label="Daur ulang / kelola sampah aktif" icon={<Trash2 className="w-3.5 h-3.5 text-red-500" />} />
+            <CheckToggle checked={form.hasOrganicPractices} onChange={(v) => setForm((p) => ({ ...p, hasOrganicPractices: v }))} label="Praktik organik / bahan alami" icon={<Leaf className="w-3.5 h-3.5 text-green-600" />} />
+            <CheckToggle checked={form.hasFairWages} onChange={(v) => setForm((p) => ({ ...p, hasFairWages: v }))} label="Bayar upah layak (≥ UMK)" icon={<Users className="w-3.5 h-3.5 text-blue-500" />} />
+            <CheckToggle checked={form.hasOnlinePlatform} onChange={(v) => setForm((p) => ({ ...p, hasOnlinePlatform: v }))} label="Punya toko online (Tokopedia, Shopee, dll)" icon={<ShoppingBag className="w-3.5 h-3.5 text-orange-500" />} />
+            <div className="grid grid-cols-2 gap-3 pt-1">
+              <div>
+                <Label className="text-xs text-gray-600 flex items-center gap-1 mb-1.5"><Users className="w-3 h-3" /> Karyawan wanita</Label>
+                <Input type="number" min="0" value={form.womenCount} onChange={(e) => setForm((p) => ({ ...p, womenCount: e.target.value }))} className="h-8 text-sm" />
+              </div>
+              <div>
+                <Label className="text-xs text-gray-600 flex items-center gap-1 mb-1.5"><Star className="w-3 h-3" /> Dampak komunitas (1–10)</Label>
+                <Input type="number" min="1" max="10" value={form.communityImpact} onChange={(e) => setForm((p) => ({ ...p, communityImpact: e.target.value }))} className="h-8 text-sm" />
+              </div>
+              <div className="col-span-2">
+                <Label className="text-xs text-gray-600 flex items-center gap-1 mb-1.5"><CircleDollarSign className="w-3 h-3" /> Transaksi digital/bulan (estimasi)</Label>
+                <Input type="number" min="0" value={form.monthlyTxCount} onChange={(e) => setForm((p) => ({ ...p, monthlyTxCount: e.target.value }))} className="h-8 text-sm" placeholder="Contoh: 50" />
+              </div>
+            </div>
+          </CardContent>
+        </Card>
+
+        <div className="space-y-4">
+          <Card className={`border shadow-sm ${scoreBg}`}>
+            <CardContent className="pt-5 pb-4">
+              <div className="flex items-center justify-between mb-4">
+                <div>
+                  <p className="text-xs text-gray-500 mb-0.5">Simulasi Skor GreenLend</p>
+                  <p className={`text-4xl font-bold ${scoreColor}`}>{finalScore.toFixed(0)}</p>
+                  <p className={`text-xs font-medium ${scoreColor}`}>{scoreLabel}</p>
+                </div>
+                <div className="text-right">
+                  {loanEligible ? (
+                    <div>
+                      <p className="text-xs text-gray-500">Layak pinjaman</p>
+                      <p className="text-lg font-bold text-emerald-700">Rp {(maxLoanIdr / 1_000_000).toFixed(0)} jt</p>
+                      <p className="text-xs text-gray-500">bunga {interestRate}%/tahun</p>
+                    </div>
+                  ) : (
+                    <div className="text-right">
+                      <p className="text-xs text-red-600 font-medium">Skor minimum 50</p>
+                      <p className="text-xs text-gray-500">diperlukan</p>
+                    </div>
+                  )}
+                </div>
+              </div>
+              <div className="space-y-2.5">
+                {[
+                  { label: "Tradisional (20%)", value: traditionalContrib, max: 12, color: "bg-slate-500" },
+                  { label: "Data Alternatif (50%)", value: altContrib, max: 45, color: "bg-blue-500" },
+                  { label: "SDG Hijau (30%)", value: sdgContrib, max: 21, color: "bg-teal-500", sub: `${sdgCapped.toFixed(0)}/70 poin SDG` },
+                ].map(({ label, value, max, color, sub }) => (
+                  <div key={label}>
+                    <div className="flex justify-between text-xs text-gray-600 mb-1">
+                      <span>{label}</span>
+                      <span className="font-medium">{value.toFixed(1)} / {max} poin</span>
+                    </div>
+                    <div className="h-2 bg-gray-200 rounded-full overflow-hidden">
+                      <div className={`h-full ${color} rounded-full transition-all`} style={{ width: `${(value / max) * 100}%` }} />
+                    </div>
+                    {sub && <p className="text-[10px] text-gray-400 mt-0.5">{sub}</p>}
+                  </div>
+                ))}
+              </div>
+            </CardContent>
+          </Card>
+
+          <Card className="border-0 shadow-sm bg-white">
+            <CardContent className="py-3">
+              <p className="text-xs font-medium text-gray-700 mb-2 flex items-center gap-1.5"><Info className="w-3.5 h-3.5 text-blue-500" /> Kelayakan Pinjaman GreenLend</p>
+              <div className="space-y-1.5">
+                {[
+                  { range: "Skor ≥80", loan: "Rp 50 juta", rate: "12%", active: finalScore >= 80 },
+                  { range: "Skor 70–79", loan: "Rp 30 juta", rate: "14%", active: finalScore >= 70 && finalScore < 80 },
+                  { range: "Skor 60–69", loan: "Rp 20 juta", rate: "16%", active: finalScore >= 60 && finalScore < 70 },
+                  { range: "Skor 50–59", loan: "Rp 10 juta", rate: "18%", active: finalScore >= 50 && finalScore < 60 },
+                  { range: "Skor < 50", loan: "Tidak layak", rate: "—", active: finalScore < 50 },
+                ].map(({ range, loan, rate, active }) => (
+                  <div key={range} className={`flex items-center justify-between rounded-md px-2.5 py-1.5 text-xs ${active ? "bg-teal-100 font-semibold text-teal-900 border border-teal-300" : "text-gray-500"}`}>
+                    <span>{range}</span>
+                    <span>{loan}</span>
+                    <span>{rate !== "—" ? `${rate}/th` : "—"}</span>
+                    {active && <BadgeCheck className="w-3.5 h-3.5 text-teal-600" />}
+                  </div>
+                ))}
+              </div>
+              {sdgDiscount > 0 && (
+                <p className="text-[11px] text-teal-700 mt-2 flex items-center gap-1"><Leaf className="w-3 h-3" /> Diskon SDG −{sdgDiscount}% sudah diterapkan ke bunga di atas</p>
+              )}
+            </CardContent>
+          </Card>
+        </div>
+      </div>
+
+      <Card className="border-0 shadow-sm bg-white">
+        <CardContent className="pt-5 pb-5">
+          <div className="flex items-start justify-between gap-4 mb-4">
+            <div>
+              <h4 className="text-sm font-semibold text-gray-800 flex items-center gap-2">
+                <Sparkles className="w-4 h-4 text-teal-600" />
+                Analisa AI — Cara Naikkan Skor GreenLend Kamu
+              </h4>
+              <p className="text-xs text-gray-500 mt-0.5">AI akan identifikasi kekuatan, celah, dan langkah konkret berdasarkan data bisnis kamu</p>
+            </div>
+            <Button
+              onClick={handleAnalysis}
+              disabled={analysisLoading || !audit}
+              className="bg-teal-600 hover:bg-teal-700 gap-2 flex-shrink-0"
+            >
+              {analysisLoading ? <RefreshCw className="w-4 h-4 animate-spin" /> : <Sparkles className="w-4 h-4" />}
+              {analysisLoading ? "AI Menganalisa..." : "Analisa Sekarang"}
+            </Button>
+          </div>
+
+          {!analysis && !analysisLoading && (
+            <div className="border-2 border-dashed border-gray-200 rounded-lg py-8 text-center">
+              <Lightbulb className="w-8 h-8 text-gray-300 mx-auto mb-2" />
+              <p className="text-sm text-gray-400">Klik tombol di atas untuk mendapat rekomendasi personal dari AI</p>
+            </div>
+          )}
+
+          {analysisLoading && (
+            <div className="border-2 border-dashed border-teal-200 rounded-lg py-8 text-center bg-teal-50">
+              <RefreshCw className="w-7 h-7 text-teal-400 mx-auto mb-2 animate-spin" />
+              <p className="text-sm text-teal-600">AI sedang menganalisa profil bisnis dan skor GreenLend kamu...</p>
+            </div>
+          )}
+
+          {analysis && (
+            <div className="space-y-4">
+              <div className="bg-emerald-50 border border-emerald-200 rounded-lg p-4">
+                <p className="text-xs font-semibold text-emerald-800 mb-2 flex items-center gap-1.5"><BadgeCheck className="w-4 h-4" /> Kekuatan Bisnis Kamu</p>
+                <ul className="space-y-1">
+                  {analysis.strengths.map((s, i) => (
+                    <li key={i} className="text-xs text-gray-700 flex items-start gap-2">
+                      <CheckCircle2 className="w-3.5 h-3.5 text-emerald-500 flex-shrink-0 mt-0.5" />
+                      {s}
+                    </li>
+                  ))}
+                </ul>
+              </div>
+
+              <div>
+                <p className="text-xs font-semibold text-gray-700 mb-2 flex items-center gap-1.5"><Target className="w-4 h-4 text-amber-600" /> Celah yang Bisa Diperbaiki</p>
+                <div className="space-y-2">
+                  {analysis.gaps.map((g, i) => (
+                    <div key={i} className="bg-amber-50 border border-amber-200 rounded-lg p-3">
+                      <p className="text-xs font-semibold text-amber-900">{g.issue}</p>
+                      <p className="text-[11px] text-amber-700 mt-0.5 flex items-center gap-1"><TrendingUp className="w-3 h-3" />{g.impact}</p>
+                      <p className="text-[11px] text-gray-600 mt-1 flex items-start gap-1"><Lightbulb className="w-3 h-3 text-blue-500 flex-shrink-0 mt-0.5" />{g.action}</p>
+                    </div>
+                  ))}
+                </div>
+              </div>
+
+              <div className="bg-blue-50 border border-blue-200 rounded-lg p-4">
+                <p className="text-xs font-semibold text-blue-800 mb-2 flex items-center gap-1.5"><Sparkles className="w-4 h-4" /> Quick Wins — Aksi Cepat Bulan Ini</p>
+                <ul className="space-y-1">
+                  {analysis.quickWins.map((q, i) => (
+                    <li key={i} className="text-xs text-gray-700 flex items-start gap-2">
+                      <span className="w-4 h-4 bg-blue-600 text-white rounded-full flex items-center justify-center text-[10px] font-bold flex-shrink-0">{i + 1}</span>
+                      {q}
+                    </li>
+                  ))}
+                </ul>
+              </div>
+
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
+                <div className="bg-gray-50 rounded-lg p-3 border">
+                  <p className="text-xs font-semibold text-gray-700 mb-1 flex items-center gap-1"><Info className="w-3.5 h-3.5 text-blue-500" /> Mengapa skor ini?</p>
+                  <p className="text-xs text-gray-600 leading-relaxed">{analysis.scoreBreakdown}</p>
+                </div>
+                <div className="bg-gray-50 rounded-lg p-3 border">
+                  <p className="text-xs font-semibold text-gray-700 mb-1 flex items-center gap-1"><Clock className="w-3.5 h-3.5 text-purple-500" /> Estimasi waktu untuk skor 70+</p>
+                  <p className="text-xs text-gray-600 leading-relaxed">{analysis.timeToImprove}</p>
+                </div>
+              </div>
+
+              <div className="bg-gradient-to-br from-teal-50 to-emerald-50 border border-teal-200 rounded-lg p-4 text-center">
+                <Leaf className="w-5 h-5 text-teal-600 mx-auto mb-1" />
+                <p className="text-xs text-teal-800 italic">{analysis.motivationalNote}</p>
+              </div>
+
+              <div className="flex items-center justify-between pt-2 border-t border-gray-100">
+                <p className="text-xs text-gray-400 flex items-center gap-1"><ExternalLink className="w-3 h-3" /> Ingin apply ke GreenLend?</p>
+                <a href="https://greenlend.elpeef.com" target="_blank" rel="noopener noreferrer"
+                  className="text-xs font-medium text-teal-700 hover:text-teal-900 flex items-center gap-1">
+                  greenlend.elpeef.com <ExternalLink className="w-3 h-3" />
+                </a>
+              </div>
+            </div>
+          )}
+        </CardContent>
+      </Card>
+    </div>
+  );
+}
+
 export default function BusinessDetail() {
   const { id } = useParams<{ id: string }>();
   const businessId = Number(id);
@@ -1720,6 +2123,7 @@ export default function BusinessDetail() {
             <TabsTrigger value="suppliers" className="gap-1.5"><ShoppingBag className="w-3.5 h-3.5" />Pemasok Hijau</TabsTrigger>
             <TabsTrigger value="progress" className="gap-1.5"><TrendingDown className="w-3.5 h-3.5" />Progress</TabsTrigger>
             <TabsTrigger value="esg" className="gap-1.5"><FileText className="w-3.5 h-3.5" />Laporan ESG</TabsTrigger>
+            <TabsTrigger value="greenlend" className="gap-1.5 text-teal-700 data-[state=active]:bg-teal-50 data-[state=active]:text-teal-800"><Landmark className="w-3.5 h-3.5" />Akses Modal</TabsTrigger>
             <TabsTrigger value="assistant" className="gap-1.5"><MessageCircle className="w-3.5 h-3.5" />Asisten AI</TabsTrigger>
           </TabsList>
 
@@ -1728,6 +2132,7 @@ export default function BusinessDetail() {
           <TabsContent value="suppliers"><SuppliersTab businessId={businessId} /></TabsContent>
           <TabsContent value="progress"><ProgressTab businessId={businessId} businessName={business?.name} /></TabsContent>
           <TabsContent value="esg"><EsgReportTab businessId={businessId} /></TabsContent>
+          <TabsContent value="greenlend"><GreenLendTab businessId={businessId} /></TabsContent>
           <TabsContent value="assistant"><AssistantTab businessId={businessId} /></TabsContent>
         </Tabs>
       </div>
