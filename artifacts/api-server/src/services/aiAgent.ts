@@ -300,12 +300,12 @@ export async function generateEsgReport(
 ): Promise<EsgReportAI> {
   const response = await openai.chat.completions.create({
     model: MODEL,
-    max_completion_tokens: 3000,
+    max_completion_tokens: 6000,
     response_format: { type: "json_object" },
     messages: [
       {
         role: "system",
-        content: `Kamu adalah konsultan ESG profesional yang membantu UMKM Indonesia membuat laporan keberlanjutan. Tulis laporan yang informatif, jujur, dan memotivasi dalam Bahasa Indonesia.`,
+        content: `Kamu adalah konsultan ESG profesional untuk UMKM Indonesia. Tulis laporan singkat, padat, jujur, dan memotivasi dalam Bahasa Indonesia. Hindari pengulangan, fokus pada insight aktual.`,
       },
       {
         role: "user",
@@ -320,7 +320,7 @@ Data keberlanjutan:
 - Pengurangan dari baseline: ${auditData.reductionFromBaseline}%
 - Progress rencana aksi: ${auditData.actionItemsCompleted}/${auditData.actionItemsTotal} item selesai
 
-Buat laporan ESG komprehensif. Format JSON:
+Format JSON (setiap section MAKSIMAL 2 paragraf pendek, total respons WAJIB di bawah 4000 token):
 {
   "period": "${auditData.period}",
   "environmentalScore": <skor 0-100>,
@@ -328,11 +328,11 @@ Buat laporan ESG komprehensif. Format JSON:
   "governanceScore": <skor 0-100>,
   "overallScore": <rata-rata 0-100>,
   "reductionFromBaseline": ${auditData.reductionFromBaseline},
-  "executiveSummary": "ringkasan eksekutif 2-3 paragraf",
-  "environmentalSection": "section E: analisis lingkungan detail 3-4 paragraf",
-  "socialSection": "section S: dampak sosial untuk karyawan dan komunitas 2-3 paragraf",
-  "governanceSection": "section G: tata kelola dan transparansi 2-3 paragraf",
-  "recommendations": "rekomendasi strategis untuk tahun depan 2-3 paragraf"
+  "executiveSummary": "ringkasan eksekutif 1-2 paragraf",
+  "environmentalSection": "analisis lingkungan 2 paragraf maks",
+  "socialSection": "dampak sosial 1-2 paragraf",
+  "governanceSection": "tata kelola 1-2 paragraf",
+  "recommendations": "rekomendasi strategis 1-2 paragraf"
 }`,
       },
     ],

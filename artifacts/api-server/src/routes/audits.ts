@@ -1,7 +1,7 @@
 import { Router } from "express";
 import { db } from "@workspace/db";
-import { audits, businesses } from "@workspace/db/schema";
-import { eq, desc } from "drizzle-orm";
+import { audits, businesses, progressRecords } from "@workspace/db/schema";
+import { eq, desc, and, asc } from "drizzle-orm";
 import {
   calculateCarbonFootprint,
   type CarbonInputs,
@@ -162,6 +162,61 @@ router.post("/businesses/:id/audits", async (req, res) => {
         aiInsights,
       })
       .returning();
+
+    try {
+      const monthMatch = period.match(/(\d{4})[-/]?(\d{2})/);
+      const now = new Date();
+      const month = monthMatch
+        ? `${monthMatch[1]}-${monthMatch[2]}`
+        : `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, "0")}`;
+
+      const [firstAudit] = await db
+        .select()
+        .from(audits)
+        .where(eq(audits.businessId, businessId))
+        .orderBy(asc(audits.createdAt))
+        .limit(1);
+
+      const baseline = firstAudit
+        ? Number(firstAudit.totalEmissions)
+        : breakdown.totalEmissions;
+      const actual = breakdown.totalEmissions;
+      const reductionPercent =
+        baseline > 0 ? ((baseline - actual) / baseline) * 100 : 0;
+
+      const [existing] = await db
+        .select()
+        .from(progressRecords)
+        .where(
+          and(
+            eq(progressRecords.businessId, businessId),
+            eq(progressRecords.month, month),
+          ),
+        );
+
+      if (existing) {
+        await db
+          .update(progressRecords)
+          .set({
+            actualEmissions: String(actual.toFixed(4)),
+            baselineEmissions: String(baseline.toFixed(4)),
+            reductionPercent: String(reductionPercent.toFixed(2)),
+            notes: `Otomatis dari audit periode ${period}`,
+          })
+          .where(eq(progressRecords.id, existing.id));
+      } else {
+        await db.insert(progressRecords).values({
+          businessId,
+          month,
+          actualEmissions: String(actual.toFixed(4)),
+          baselineEmissions: String(baseline.toFixed(4)),
+          reductionPercent: String(reductionPercent.toFixed(2)),
+          notes: `Otomatis dari audit periode ${period}`,
+        });
+      }
+    } catch {
+      // non-fatal: audit succeeded
+    }
 
     return res.status(201).json({
       ...row,

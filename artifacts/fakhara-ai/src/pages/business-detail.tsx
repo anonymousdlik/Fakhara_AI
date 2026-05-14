@@ -31,7 +31,8 @@ import {
   ArrowLeft, Leaf, Factory, MapPin, Users, TrendingDown, TrendingUp,
   Zap, Truck, Trash2, Package, CheckCircle2, Clock, PlayCircle,
   RefreshCw, FileText, Sparkles, BarChart3, ShoppingBag, Target,
-  AlertTriangle, ChevronDown, ChevronUp, Pencil, X, Download
+  AlertTriangle, ChevronDown, ChevronUp, Pencil, X, Download,
+  MessageCircle, Wrench, Send, Bot
 } from "lucide-react";
 import {
   Dialog,
@@ -1078,6 +1079,203 @@ function EsgReportTab({ businessId }: { businessId: number }) {
   );
 }
 
+interface ChatMsg {
+  role: "user" | "assistant";
+  content: string;
+  trace?: { tool: string; args: unknown; result: unknown }[];
+}
+
+function AssistantTab({ businessId }: { businessId: number }) {
+  const [messages, setMessages] = useState<ChatMsg[]>([
+    {
+      role: "assistant",
+      content:
+        "Halo! Saya Asisten AI Fakhara. Saya bisa cek audit, hitung ROI investasi hijau, atau cari pemasok ramah lingkungan untuk bisnis Anda. Mau tanya apa?",
+    },
+  ]);
+  const [input, setInput] = useState("");
+  const [loading, setLoading] = useState(false);
+  const [openTrace, setOpenTrace] = useState<Record<number, boolean>>({});
+
+  const suggestions = [
+    "Bagaimana ringkasan audit terakhir saya?",
+    "Hitung ROI kalau saya investasi Rp 50 juta untuk panel surya, hemat Rp 2 juta/bulan",
+    "Cari pemasok hijau untuk kategori energi",
+    "Bagaimana tren progress saya?",
+  ];
+
+  async function send(text: string) {
+    const trimmed = text.trim();
+    if (!trimmed || loading) return;
+    const next = [...messages, { role: "user" as const, content: trimmed }];
+    setMessages(next);
+    setInput("");
+    setLoading(true);
+    try {
+      const history = next
+        .filter((m) => m.role === "user" || m.role === "assistant")
+        .slice(0, -1)
+        .slice(-8)
+        .map((m) => ({ role: m.role, content: m.content }));
+      const resp = await fetch(`/api/businesses/${businessId}/agent/chat`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ message: trimmed, history }),
+      });
+      if (!resp.ok) throw new Error(`HTTP ${resp.status}`);
+      const data = (await resp.json()) as {
+        reply: string;
+        trace: { tool: string; args: unknown; result: unknown }[];
+      };
+      setMessages([
+        ...next,
+        { role: "assistant", content: data.reply, trace: data.trace },
+      ]);
+    } catch (err) {
+      setMessages([
+        ...next,
+        {
+          role: "assistant",
+          content: `Maaf, terjadi kesalahan: ${String(err)}`,
+        },
+      ]);
+    } finally {
+      setLoading(false);
+    }
+  }
+
+  return (
+    <div className="space-y-4">
+      <Card className="bg-gradient-to-br from-green-50 to-emerald-50 border-green-100">
+        <CardContent className="py-4 flex items-start gap-3">
+          <div className="bg-green-600 p-2 rounded-lg">
+            <Bot className="w-5 h-5 text-white" />
+          </div>
+          <div>
+            <h3 className="font-semibold text-green-900">Asisten AI Berbasis Tool</h3>
+            <p className="text-xs text-green-800/80 mt-0.5">
+              Agen AI ini punya akses ke 5 tools (audit, rencana aksi, progress, supplier, ROI calculator)
+              dan otomatis memilih tool yang tepat untuk menjawab Anda.
+            </p>
+          </div>
+        </CardContent>
+      </Card>
+
+      <Card>
+        <CardContent className="p-4 space-y-3">
+          <div className="space-y-3 max-h-[420px] overflow-y-auto pr-1">
+            {messages.map((m, i) => (
+              <div
+                key={i}
+                className={`flex gap-2 ${m.role === "user" ? "justify-end" : "justify-start"}`}
+              >
+                {m.role === "assistant" && (
+                  <div className="bg-green-600 p-1.5 rounded-md h-fit">
+                    <Bot className="w-3.5 h-3.5 text-white" />
+                  </div>
+                )}
+                <div
+                  className={`max-w-[80%] rounded-2xl px-3.5 py-2 text-sm leading-relaxed ${
+                    m.role === "user"
+                      ? "bg-green-600 text-white"
+                      : "bg-gray-100 text-gray-800"
+                  }`}
+                >
+                  <div className="whitespace-pre-wrap">{m.content}</div>
+                  {m.trace && m.trace.length > 0 && (
+                    <button
+                      onClick={() =>
+                        setOpenTrace((s) => ({ ...s, [i]: !s[i] }))
+                      }
+                      className="mt-2 text-[11px] text-green-700 hover:text-green-800 flex items-center gap-1 font-medium"
+                    >
+                      <Wrench className="w-3 h-3" />
+                      {openTrace[i] ? "Sembunyikan" : "Lihat"} {m.trace.length} tool call{m.trace.length > 1 ? "s" : ""}
+                    </button>
+                  )}
+                  {m.trace && openTrace[i] && (
+                    <div className="mt-2 space-y-2">
+                      {m.trace.map((t, j) => (
+                        <div
+                          key={j}
+                          className="bg-white border border-gray-200 rounded-lg p-2 text-[11px] font-mono"
+                        >
+                          <div className="text-green-700 font-semibold">→ {t.tool}</div>
+                          {t.args != null && Object.keys(t.args as object).length > 0 && (
+                            <div className="text-gray-500 mt-0.5 break-all">
+                              args: {JSON.stringify(t.args)}
+                            </div>
+                          )}
+                          <div className="text-gray-700 mt-1 break-all max-h-32 overflow-y-auto">
+                            {JSON.stringify(t.result, null, 2)}
+                          </div>
+                        </div>
+                      ))}
+                    </div>
+                  )}
+                </div>
+              </div>
+            ))}
+            {loading && (
+              <div className="flex gap-2 justify-start">
+                <div className="bg-green-600 p-1.5 rounded-md h-fit">
+                  <Bot className="w-3.5 h-3.5 text-white" />
+                </div>
+                <div className="bg-gray-100 rounded-2xl px-3.5 py-2 text-sm text-gray-500">
+                  <div className="flex gap-1">
+                    <span className="w-1.5 h-1.5 bg-green-500 rounded-full animate-pulse" />
+                    <span className="w-1.5 h-1.5 bg-green-500 rounded-full animate-pulse [animation-delay:0.2s]" />
+                    <span className="w-1.5 h-1.5 bg-green-500 rounded-full animate-pulse [animation-delay:0.4s]" />
+                  </div>
+                </div>
+              </div>
+            )}
+          </div>
+
+          {messages.length <= 1 && (
+            <div className="flex flex-wrap gap-1.5">
+              {suggestions.map((s) => (
+                <button
+                  key={s}
+                  onClick={() => send(s)}
+                  disabled={loading}
+                  className="text-[11px] bg-green-50 hover:bg-green-100 text-green-800 px-2.5 py-1 rounded-full border border-green-200 transition disabled:opacity-50"
+                >
+                  {s}
+                </button>
+              ))}
+            </div>
+          )}
+
+          <form
+            onSubmit={(e) => {
+              e.preventDefault();
+              send(input);
+            }}
+            className="flex gap-2 pt-1"
+          >
+            <Input
+              value={input}
+              onChange={(e) => setInput(e.target.value)}
+              placeholder="Tanya apa saja tentang bisnis Anda..."
+              disabled={loading}
+              className="flex-1"
+            />
+            <Button
+              type="submit"
+              disabled={loading || !input.trim()}
+              className="bg-green-600 hover:bg-green-700 gap-1.5"
+            >
+              <Send className="w-4 h-4" />
+              Kirim
+            </Button>
+          </form>
+        </CardContent>
+      </Card>
+    </div>
+  );
+}
+
 export default function BusinessDetail() {
   const { id } = useParams<{ id: string }>();
   const businessId = Number(id);
@@ -1307,6 +1505,7 @@ export default function BusinessDetail() {
             <TabsTrigger value="suppliers" className="gap-1.5"><ShoppingBag className="w-3.5 h-3.5" />Pemasok Hijau</TabsTrigger>
             <TabsTrigger value="progress" className="gap-1.5"><TrendingDown className="w-3.5 h-3.5" />Progress</TabsTrigger>
             <TabsTrigger value="esg" className="gap-1.5"><FileText className="w-3.5 h-3.5" />Laporan ESG</TabsTrigger>
+            <TabsTrigger value="assistant" className="gap-1.5"><MessageCircle className="w-3.5 h-3.5" />Asisten AI</TabsTrigger>
           </TabsList>
 
           <TabsContent value="audit"><AuditTab businessId={businessId} /></TabsContent>
@@ -1314,6 +1513,7 @@ export default function BusinessDetail() {
           <TabsContent value="suppliers"><SuppliersTab businessId={businessId} /></TabsContent>
           <TabsContent value="progress"><ProgressTab businessId={businessId} businessName={business?.name} /></TabsContent>
           <TabsContent value="esg"><EsgReportTab businessId={businessId} /></TabsContent>
+          <TabsContent value="assistant"><AssistantTab businessId={businessId} /></TabsContent>
         </Tabs>
       </div>
     </div>

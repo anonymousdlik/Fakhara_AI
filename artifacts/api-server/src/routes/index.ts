@@ -6,6 +6,7 @@ import actionPlansRouter from "./actionPlans";
 import suppliersRouter from "./suppliers";
 import progressRouter from "./progress";
 import esgReportsRouter from "./esgReports";
+import agentRouter from "./agent";
 
 const router: IRouter = Router();
 
@@ -16,5 +17,6 @@ router.use(actionPlansRouter);
 router.use(suppliersRouter);
 router.use(progressRouter);
 router.use(esgReportsRouter);
+router.use(agentRouter);
 
 export default router;
