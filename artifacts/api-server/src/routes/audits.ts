@@ -9,6 +9,7 @@ import {
 import {
   generateAuditInsights,
   generateClarifyingQuestions,
+  extractReceiptData,
   type ClarifyingAnswer,
 } from "../services/aiAgent";
 
@@ -71,6 +72,48 @@ router.post("/businesses/:id/audits/questions", async (req, res) => {
     return res.json({ questions });
   } catch (err) {
     return res.status(500).json({ error: "Gagal menghasilkan pertanyaan", detail: String(err) });
+  }
+});
+
+router.post("/businesses/:id/audits/ocr", async (req, res) => {
+  try {
+    const businessId = Number(req.params["id"]);
+    const [business] = await db
+      .select()
+      .from(businesses)
+      .where(eq(businesses.id, businessId));
+    if (!business) return res.status(404).json({ error: "Bisnis tidak ditemukan" });
+
+    const { imageBase64, mimeType } = req.body as {
+      imageBase64?: string;
+      mimeType?: string;
+    };
+
+    if (!imageBase64 || !mimeType) {
+      return res.status(400).json({ error: "imageBase64 dan mimeType wajib diisi" });
+    }
+    if (!mimeType.startsWith("image/")) {
+      return res.status(400).json({ error: "Hanya menerima file gambar" });
+    }
+
+    const cleanBase64 = imageBase64.replace(/^data:[^;]+;base64,/, "");
+    const decodedBytes = Math.floor((cleanBase64.length * 3) / 4);
+    if (decodedBytes > 8 * 1024 * 1024) {
+      return res.status(413).json({ error: "Gambar terlalu besar (maks 8MB)" });
+    }
+
+    try {
+      const result = await extractReceiptData(cleanBase64, mimeType);
+      return res.json(result);
+    } catch {
+      return res.json({
+        receiptType: "tidak_jelas",
+        confidence: "rendah",
+        notes: "AI gagal membaca struk. Coba foto yang lebih jelas atau isi manual.",
+      });
+    }
+  } catch {
+    return res.status(500).json({ error: "Gagal memproses permintaan OCR" });
   }
 });
 

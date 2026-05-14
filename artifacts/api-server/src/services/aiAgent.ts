@@ -86,6 +86,109 @@ export interface EsgReportAI {
   reductionFromBaseline: number;
 }
 
+export interface ReceiptExtractionResult {
+  electricityKwh?: number;
+  fuelLiters?: number;
+  wasteKg?: number;
+  supplyChainSpendIdr?: number;
+  period?: string;
+  receiptType: "listrik" | "bensin" | "sampah" | "belanja" | "tidak_jelas";
+  confidence: "tinggi" | "sedang" | "rendah";
+  notes: string;
+}
+
+export async function extractReceiptData(
+  imageBase64: string,
+  mimeType: string,
+): Promise<ReceiptExtractionResult> {
+  const dataUrl = `data:${mimeType};base64,${imageBase64}`;
+
+  const response = await openai.chat.completions.create({
+    model: MODEL,
+    max_completion_tokens: 600,
+    response_format: { type: "json_object" },
+    messages: [
+      {
+        role: "system",
+        content: `Kamu adalah AI yang ahli membaca foto struk/nota Indonesia (struk listrik PLN, nota SPBU/Pertamina, kuitansi sampah, atau tagihan supplier). Ekstrak data numerik utama dan kembalikan dalam JSON.
+
+Aturan:
+- Hanya isi field yang BENAR-BENAR terlihat di gambar.
+- electricityKwh: pemakaian kWh dari struk PLN (bukan tagihan rupiah).
+- fuelLiters: jumlah liter bensin/solar dari nota SPBU.
+- wasteKg: jumlah kg sampah dari kuitansi sampah.
+- supplyChainSpendIdr: total belanja supplier dalam Rupiah.
+- period: jika ada bulan/tahun di struk, format "YYYY-MM".
+- Jika tidak yakin, set confidence ke "rendah" dan jelaskan di notes.
+- receiptType: identifikasi jenis struk.`,
+      },
+      {
+        role: "user",
+        content: [
+          {
+            type: "text",
+            text: `Tolong baca foto struk berikut dan ekstrak datanya. Format JSON:
+{
+  "receiptType": "listrik" | "bensin" | "sampah" | "belanja" | "tidak_jelas",
+  "confidence": "tinggi" | "sedang" | "rendah",
+  "electricityKwh": number atau null,
+  "fuelLiters": number atau null,
+  "wasteKg": number atau null,
+  "supplyChainSpendIdr": number atau null,
+  "period": "YYYY-MM" atau null,
+  "notes": "penjelasan singkat apa yang kamu lihat di struk dalam Bahasa Indonesia"
+}`,
+          },
+          {
+            type: "image_url",
+            image_url: { url: dataUrl },
+          },
+        ],
+      },
+    ],
+  });
+
+  const content = response.choices[0]?.message?.content;
+  if (!content) {
+    return {
+      receiptType: "tidak_jelas",
+      confidence: "rendah",
+      notes: "AI tidak memberikan jawaban.",
+    };
+  }
+
+  const parsed = safeJsonParse<Record<string, unknown>>(
+    content,
+    "Gagal mem-parse hasil OCR",
+  );
+
+  const num = (v: unknown): number | undefined => {
+    if (v === null || v === undefined || v === "") return undefined;
+    const n = Number(v);
+    return Number.isFinite(n) && n > 0 ? n : undefined;
+  };
+
+  const str = (v: unknown): string | undefined => {
+    if (typeof v !== "string" || !v.trim()) return undefined;
+    return v.trim();
+  };
+
+  return {
+    electricityKwh: num(parsed["electricityKwh"]),
+    fuelLiters: num(parsed["fuelLiters"]),
+    wasteKg: num(parsed["wasteKg"]),
+    supplyChainSpendIdr: num(parsed["supplyChainSpendIdr"]),
+    period: str(parsed["period"]),
+    receiptType:
+      (str(parsed["receiptType"]) as ReceiptExtractionResult["receiptType"]) ??
+      "tidak_jelas",
+    confidence:
+      (str(parsed["confidence"]) as ReceiptExtractionResult["confidence"]) ??
+      "rendah",
+    notes: str(parsed["notes"]) ?? "",
+  };
+}
+
 export async function generateClarifyingQuestions(
   business: Business,
   initialData: Pick<AuditData, "electricityKwh" | "fuelLiters" | "wasteKg">,

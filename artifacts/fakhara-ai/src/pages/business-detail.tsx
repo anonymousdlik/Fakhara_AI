@@ -1,4 +1,4 @@
-import { useState, useMemo } from "react";
+import { useState, useMemo, useRef } from "react";
 import { useParams, Link, useLocation } from "wouter";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import {
@@ -32,7 +32,7 @@ import {
   Zap, Truck, Trash2, Package, CheckCircle2, Clock, PlayCircle,
   RefreshCw, FileText, Sparkles, BarChart3, ShoppingBag, Target,
   AlertTriangle, ChevronDown, ChevronUp, Pencil, X, Download,
-  MessageCircle, Wrench, Send, Bot
+  MessageCircle, Wrench, Send, Bot, Camera, TreePine, Wallet, Award
 } from "lucide-react";
 import {
   Dialog,
@@ -76,6 +76,9 @@ function AuditTab({ businessId }: { businessId: number }) {
   const qc = useQueryClient();
   const [step, setStep] = useState<AuditStep>("results");
   const [loadingQuestions, setLoadingQuestions] = useState(false);
+  const [ocrLoading, setOcrLoading] = useState(false);
+  const [ocrNote, setOcrNote] = useState<string | null>(null);
+  const fileInputRef = useRef<HTMLInputElement>(null);
   const [questions, setQuestions] = useState<ClarifyingQuestion[]>([]);
   const [answers, setAnswers] = useState<Record<string, string>>({});
   const [form, setForm] = useState({
@@ -159,6 +162,82 @@ function AuditTab({ businessId }: { businessId: number }) {
   const handleSubmitAudit = () => {
     setStep("processing");
     mutation.mutate();
+  };
+
+  const handleOcrUpload = async (file: File) => {
+    if (!file.type.startsWith("image/")) {
+      toast({ title: "File harus berupa gambar", variant: "destructive" });
+      return;
+    }
+    if (file.size > 8 * 1024 * 1024) {
+      toast({ title: "Gambar terlalu besar", description: "Maks 8MB", variant: "destructive" });
+      return;
+    }
+    setOcrLoading(true);
+    setOcrNote(null);
+    try {
+      const base64 = await new Promise<string>((resolve, reject) => {
+        const reader = new FileReader();
+        reader.onload = () => {
+          const r = reader.result;
+          if (typeof r === "string") {
+            resolve(r.split(",")[1] ?? "");
+          } else {
+            reject(new Error("Failed to read file"));
+          }
+        };
+        reader.onerror = () => reject(reader.error);
+        reader.readAsDataURL(file);
+      });
+
+      const res = await fetch(`/api/businesses/${businessId}/audits/ocr`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ imageBase64: base64, mimeType: file.type }),
+      });
+      if (!res.ok) {
+        const err = await res.json().catch(() => ({}));
+        throw new Error(err.error ?? "Gagal membaca struk");
+      }
+      const data = await res.json() as {
+        electricityKwh?: number; fuelLiters?: number; wasteKg?: number;
+        supplyChainSpendIdr?: number; period?: string;
+        receiptType: string; confidence: string; notes: string;
+      };
+
+      setForm((prev) => ({
+        ...prev,
+        period: data.period ?? prev.period,
+        electricityKwh: data.electricityKwh != null ? String(data.electricityKwh) : prev.electricityKwh,
+        fuelLiters: data.fuelLiters != null ? String(data.fuelLiters) : prev.fuelLiters,
+        wasteKg: data.wasteKg != null ? String(data.wasteKg) : prev.wasteKg,
+        supplyChainSpendIdr: data.supplyChainSpendIdr != null ? String(data.supplyChainSpendIdr) : prev.supplyChainSpendIdr,
+      }));
+
+      const filledFields: string[] = [];
+      if (data.electricityKwh != null) filledFields.push("listrik");
+      if (data.fuelLiters != null) filledFields.push("bahan bakar");
+      if (data.wasteKg != null) filledFields.push("sampah");
+      if (data.supplyChainSpendIdr != null) filledFields.push("belanja");
+
+      setOcrNote(
+        `Jenis struk: ${data.receiptType} • Kepercayaan AI: ${data.confidence}` +
+        (filledFields.length > 0 ? ` • Field terisi: ${filledFields.join(", ")}` : "") +
+        (data.notes ? `\n${data.notes}` : ""),
+      );
+      toast({
+        title: filledFields.length > 0 ? "Data dari struk berhasil diisi" : "Struk dibaca, tapi tidak ada angka jelas",
+        description: filledFields.length > 0
+          ? `${filledFields.join(", ")} otomatis diisi. Cek dan koreksi jika perlu.`
+          : data.notes,
+        variant: filledFields.length > 0 ? "default" : "destructive",
+      });
+    } catch (err) {
+      toast({ title: "Gagal membaca struk", description: String(err), variant: "destructive" });
+    } finally {
+      setOcrLoading(false);
+      if (fileInputRef.current) fileInputRef.current.value = "";
+    }
   };
 
   const showForm = step === "form";
@@ -305,6 +384,42 @@ function AuditTab({ businessId }: { businessId: number }) {
             </div>
           </CardHeader>
           <CardContent>
+            <div className="mb-4 p-3 bg-gradient-to-br from-purple-50 to-indigo-50 border border-purple-200 rounded-lg">
+              <div className="flex items-start gap-3">
+                <div className="w-9 h-9 bg-white rounded-lg flex items-center justify-center flex-shrink-0 shadow-sm">
+                  <Camera className="w-4 h-4 text-purple-600" />
+                </div>
+                <div className="flex-1 min-w-0">
+                  <p className="text-sm font-semibold text-gray-800">Punya foto struk listrik / nota bensin?</p>
+                  <p className="text-xs text-gray-600 mt-0.5">AI akan baca otomatis dan isi form di bawah. Tinggal koreksi kalau perlu.</p>
+                  <input
+                    ref={fileInputRef}
+                    type="file"
+                    accept="image/*"
+                    capture="environment"
+                    className="hidden"
+                    onChange={(e) => {
+                      const f = e.target.files?.[0];
+                      if (f) void handleOcrUpload(f);
+                    }}
+                  />
+                  <Button
+                    type="button"
+                    size="sm"
+                    variant="outline"
+                    className="mt-2 gap-1.5 border-purple-300 text-purple-700 hover:bg-purple-100 h-8"
+                    onClick={() => fileInputRef.current?.click()}
+                    disabled={ocrLoading}
+                  >
+                    {ocrLoading ? <RefreshCw className="w-3.5 h-3.5 animate-spin" /> : <Camera className="w-3.5 h-3.5" />}
+                    {ocrLoading ? "AI sedang membaca struk..." : "Upload / Foto Struk"}
+                  </Button>
+                  {ocrNote && (
+                    <p className="text-xs text-purple-700 mt-2 whitespace-pre-line bg-white/60 rounded p-2 border border-purple-100">{ocrNote}</p>
+                  )}
+                </div>
+              </div>
+            </div>
             <form onSubmit={handleFormNext} className="space-y-4">
               <div>
                 <Label className="text-xs font-medium text-gray-700">Periode Audit</Label>
@@ -509,6 +624,51 @@ function ActionPlanTab({ businessId }: { businessId: number }) {
   const completed = plan.items.filter((i) => i.status === "completed").length;
   const total = plan.items.length;
 
+  const TREES_PER_TON = 22;
+  const SAVINGS_PER_TON: Record<string, number> = {
+    energi: 1500 * 1500,
+    transportasi: 13000 * 430,
+    sampah: 500 * 833,
+    supply_chain: 3_000_000,
+  };
+  const formatRp = (n: number) => {
+    if (n >= 1_000_000_000) return `Rp ${(n / 1_000_000_000).toFixed(1)} M`;
+    if (n >= 1_000_000) return `Rp ${(n / 1_000_000).toFixed(1)} jt`;
+    if (n >= 1_000) return `Rp ${(n / 1_000).toFixed(0)} rb`;
+    return `Rp ${Math.round(n).toLocaleString("id-ID")}`;
+  };
+  const computeSavings = (items: typeof plan.items) =>
+    items.reduce((acc, it) => {
+      const factor = SAVINGS_PER_TON[it.category] ?? 1_500_000;
+      return acc + Number(it.estimatedReduction) * factor;
+    }, 0);
+
+  const totalReduction = plan.items.reduce(
+    (acc, i) => acc + Number(i.estimatedReduction),
+    0,
+  );
+  const totalSavingsAnnual = computeSavings(plan.items);
+
+  const top3 = [...plan.items]
+    .filter((i) => i.priority === "quick_win")
+    .sort((a, b) => Number(b.estimatedReduction) - Number(a.estimatedReduction))
+    .slice(0, 3);
+  const fallbackTop3 = top3.length === 3
+    ? top3
+    : [...plan.items]
+        .sort(
+          (a, b) => Number(b.estimatedReduction) - Number(a.estimatedReduction),
+        )
+        .slice(0, 3);
+  const top3Reduction = fallbackTop3.reduce(
+    (acc, i) => acc + Number(i.estimatedReduction),
+    0,
+  );
+  const top3Trees = Math.round(top3Reduction * TREES_PER_TON);
+  const top3SavingsAnnual = computeSavings(fallbackTop3);
+
+  const treeIcons = Math.min(top3Trees, 30);
+
   return (
     <div className="space-y-5">
       <Card className="border-0 shadow-sm bg-gradient-to-br from-blue-50 to-indigo-50 border border-blue-200">
@@ -533,6 +693,61 @@ function ActionPlanTab({ businessId }: { businessId: number }) {
             </div>
             <Progress value={(completed / Math.max(total, 1)) * 100} className="h-2" />
           </div>
+        </CardContent>
+      </Card>
+
+      <Card className="border-0 shadow-sm bg-gradient-to-br from-emerald-50 via-green-50 to-amber-50 border border-emerald-200">
+        <CardContent className="pt-5 pb-5">
+          <div className="flex items-center gap-2 mb-4">
+            <Award className="w-4 h-4 text-emerald-700" />
+            <span className="text-sm font-semibold text-emerald-900">Simulasi Dampak — Kalau 3 Aksi Prioritas Dijalankan</span>
+          </div>
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+            <div className="bg-white rounded-lg p-4 border border-emerald-100">
+              <div className="flex items-center gap-2 mb-2">
+                <TreePine className="w-4 h-4 text-emerald-600" />
+                <p className="text-xs font-medium text-gray-600">Setara Menanam</p>
+              </div>
+              <p className="text-3xl font-bold text-emerald-700 mb-1">{top3Trees.toLocaleString("id-ID")}</p>
+              <p className="text-xs text-gray-500 mb-3">pohon dewasa per tahun</p>
+              <div className="flex flex-wrap gap-0.5">
+                {Array.from({ length: treeIcons }).map((_, i) => (
+                  <TreePine key={i} className="w-3.5 h-3.5 text-emerald-500" />
+                ))}
+                {top3Trees > 30 && <span className="text-xs text-emerald-700 font-medium ml-1">+{top3Trees - 30}</span>}
+              </div>
+              <p className="text-[11px] text-gray-400 mt-2">Berdasarkan {top3Reduction.toFixed(2)} ton CO₂e × 22 pohon/ton/tahun (faktor EPA).</p>
+            </div>
+            <div className="bg-white rounded-lg p-4 border border-amber-100">
+              <div className="flex items-center gap-2 mb-2">
+                <Wallet className="w-4 h-4 text-amber-600" />
+                <p className="text-xs font-medium text-gray-600">Estimasi Penghematan Operasional</p>
+              </div>
+              <p className="text-3xl font-bold text-amber-700 mb-1">{formatRp(top3SavingsAnnual)}</p>
+              <p className="text-xs text-gray-500 mb-3">per tahun • ≈ {formatRp(top3SavingsAnnual / 12)}/bulan</p>
+              <div className="space-y-1">
+                {fallbackTop3.map((it) => {
+                  const factor = SAVINGS_PER_TON[it.category] ?? 1_500_000;
+                  const saving = Number(it.estimatedReduction) * factor;
+                  return (
+                    <div key={it.id} className="flex items-center justify-between text-[11px] text-gray-600">
+                      <span className="truncate pr-2">{it.title}</span>
+                      <span className="font-medium text-amber-700 flex-shrink-0">{formatRp(saving)}/th</span>
+                    </div>
+                  );
+                })}
+              </div>
+              <p className="text-[11px] text-gray-400 mt-2">Estimasi tarif: listrik Rp1.500/kWh, BBM Rp13.000/L, sampah Rp500/kg.</p>
+            </div>
+          </div>
+          {plan.items.length > fallbackTop3.length && (
+            <div className="mt-4 pt-3 border-t border-emerald-200/60 flex flex-wrap items-center justify-between gap-2 text-xs text-emerald-900">
+              <span>Kalau <strong>semua {plan.items.length} aksi</strong> dijalankan:</span>
+              <span className="font-semibold">
+                {Math.round(totalReduction * TREES_PER_TON).toLocaleString("id-ID")} pohon · {formatRp(totalSavingsAnnual)}/tahun
+              </span>
+            </div>
+          )}
         </CardContent>
       </Card>
 
