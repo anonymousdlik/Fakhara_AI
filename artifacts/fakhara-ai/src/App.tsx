@@ -4,6 +4,7 @@ import { Toaster } from "@/components/ui/toaster";
 import { TooltipProvider } from "@/components/ui/tooltip";
 import NotFound from "@/pages/not-found";
 import Dashboard from "@/pages/dashboard";
+import Landing from "@/pages/landing";
 import NewBusiness from "@/pages/new-business";
 import BusinessDetail from "@/pages/business-detail";
 
@@ -19,7 +20,8 @@ const queryClient = new QueryClient({
 function Router() {
   return (
     <Switch>
-      <Route path="/" component={Dashboard} />
+      <Route path="/" component={Landing} />
+      <Route path="/dashboard" component={Dashboard} />
       <Route path="/businesses/new" component={NewBusiness} />
       <Route path="/businesses/:id" component={BusinessDetail} />
       <Route component={NotFound} />
@@ -31,7 +33,7 @@ function App() {
   return (
     <QueryClientProvider client={queryClient}>
       <TooltipProvider>
-        <WouterRouter base={import.meta.env.BASE_URL.replace(/\/$/, "")}>
+        <WouterRouter base={import.meta.env.BASE_URL.replace(/\/$/, "")}> 
           <Router />
         </WouterRouter>
         <Toaster />

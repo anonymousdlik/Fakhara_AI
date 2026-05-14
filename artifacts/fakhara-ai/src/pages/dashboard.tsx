@@ -20,6 +20,89 @@ export default function Dashboard() {
     queryFn: () => listBusinesses(),
   });
 
+  const hasBusinesses = !!businesses?.length;
+
+  if (!isLoading && !hasBusinesses) {
+    return (
+      <div className="min-h-screen bg-gradient-to-br from-green-50 via-emerald-50 to-teal-50">
+        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
+          <div className="flex items-center justify-between mb-10">
+            <div className="flex items-center gap-3">
+              <div className="w-11 h-11 bg-green-600 rounded-2xl flex items-center justify-center shadow-sm">
+                <Leaf className="w-6 h-6 text-white" />
+              </div>
+              <div>
+                <h1 className="text-2xl font-bold text-gray-900">Fakhara AI</h1>
+                <p className="text-sm text-gray-500">Agen Keberlanjutan untuk UMKM Indonesia</p>
+              </div>
+            </div>
+            <Link href="/businesses/new">
+              <Button className="bg-green-600 hover:bg-green-700 gap-2">
+                <Plus className="w-4 h-4" />
+                Tambah Bisnis
+              </Button>
+            </Link>
+          </div>
+
+          <div className="grid lg:grid-cols-2 gap-8 items-center">
+            <Card className="border-0 shadow-xl bg-white/90 backdrop-blur">
+              <CardContent className="p-8">
+                <Badge className="mb-4 bg-green-100 text-green-700 hover:bg-green-100 border-0">
+                  AI for Environmental & Social Impact
+                </Badge>
+                <h2 className="text-4xl font-bold leading-tight mb-4 text-gray-900">
+                  Audit emisi, susun 8 rencana aksi, lalu pantau progresnya.
+                </h2>
+                <p className="text-gray-600 leading-relaxed mb-6">
+                  Fakhara AI membantu UMKM menghitung jejak karbon, menemukan peluang pengurangan, mencari supplier hijau, dan men-generate ESG report otomatis.
+                </p>
+                <div className="flex flex-wrap gap-3">
+                  <Link href="/businesses/new">
+                    <Button className="bg-green-600 hover:bg-green-700 gap-2">
+                      <Plus className="w-4 h-4" />
+                      Mulai Isi Bisnis
+                    </Button>
+                  </Link>
+                  <Link href="/dashboard">
+                    <Button variant="outline" className="bg-white gap-2">
+                      Lihat Dashboard
+                    </Button>
+                  </Link>
+                </div>
+              </CardContent>
+            </Card>
+
+            <div className="grid gap-4">
+              <Card className="border-0 shadow-sm bg-white">
+                <CardHeader className="pb-2">
+                  <CardTitle className="text-base">Apa yang app ini lakukan?</CardTitle>
+                </CardHeader>
+                <CardContent className="space-y-3 text-sm text-gray-600">
+                  <p>• Hitung emisi dari listrik, bahan bakar, sampah, dan supply chain.</p>
+                  <p>• Buat 8 rekomendasi aksi yang paling berdampak.</p>
+                  <p>• Simpan progress bulanan dan export laporan ESG.</p>
+                  <p>• Tampilkan alasan AI secara transparan lewat tool trace.</p>
+                </CardContent>
+              </Card>
+
+              <Card className="border-0 shadow-sm bg-white">
+                <CardHeader className="pb-2">
+                  <CardTitle className="text-base">Alur pakai singkat</CardTitle>
+                </CardHeader>
+                <CardContent className="space-y-3 text-sm text-gray-600">
+                  <p>1. Tambah bisnis pertama.</p>
+                  <p>2. Jalankan audit operasional.</p>
+                  <p>3. Review insight AI dan jalankan rencana aksi.</p>
+                  <p>4. Update progress sampai selesai.</p>
+                </CardContent>
+              </Card>
+            </div>
+          </div>
+        </div>
+      </div>
+    );
+  }
+
   return (
     <div className="min-h-screen bg-gradient-to-br from-green-50 via-emerald-50 to-teal-50">
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
@@ -136,23 +219,7 @@ export default function Dashboard() {
                 </Link>
               ))}
             </div>
-          ) : (
-            <Card className="border-0 shadow-sm bg-white">
-              <CardContent className="py-16 text-center">
-                <div className="w-16 h-16 bg-green-100 rounded-full flex items-center justify-center mx-auto mb-4">
-                  <Leaf className="w-8 h-8 text-green-600" />
-                </div>
-                <h3 className="text-lg font-semibold text-gray-700 mb-2">Belum Ada Bisnis</h3>
-                <p className="text-gray-400 text-sm mb-4">Mulai perjalanan keberlanjutan UMKM Anda</p>
-                <Link href="/businesses/new">
-                  <Button className="bg-green-600 hover:bg-green-700 gap-2">
-                    <Plus className="w-4 h-4" />
-                    Tambah Bisnis Pertama
-                  </Button>
-                </Link>
-              </CardContent>
-            </Card>
-          )}
+          ) : null}
         </div>
       </div>
     </div>
