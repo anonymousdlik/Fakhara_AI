@@ -8,6 +8,19 @@ Dibangun untuk **Technofest 2026**.
 
 ---
 
+## Positioning: Ekosistem, Bukan Sekadar Satu App
+
+Fakhara AI bukan aplikasi standalone — ini adalah **jembatan ekosistem hijau** yang menghubungkan UMKM dari audit emisi hingga akses modal:
+
+```
+Fakhara AI  ──(skor ESG/SDG)──▶  GreenLend
+(audit + aksi + ESG report)       (kredit mikro berbasis SDG)
+```
+
+**GreenLend** adalah platform kredit mikro AI yang memenangkan 🏆 **Juara 1 Digital Innovation Challenge di NYU Shanghai 2025** — dengan model scoring unik: 20% Tradisional + 50% Data Alternatif + 30% SDG Hijau. Makin hijau bisnis (dibuktikan oleh Fakhara AI), makin tinggi skor GreenLend, makin rendah bunganya.
+
+Fakhara AI menghasilkan data emisi, laporan ESG, dan skor keberlanjutan — GreenLend menggunakannya untuk menentukan kelayakan pinjaman. Keduanya membentuk ekosistem end-to-end: **ukur → tingkatkan → dapat modal**.
+
 ## Kenapa Dibuat
 
 Banyak UMKM ingin lebih ramah lingkungan, tapi tidak punya waktu, tools, atau tim khusus ESG. Bank dan lembaga kredit semakin mensyaratkan laporan ESG — tapi UMKM tidak tahu cara membuatnya. Fakhara AI hadir sebagai asisten keberlanjutan yang praktis, transparan, dan langsung bisa dipakai tanpa keahlian teknis.
