@@ -31,7 +31,7 @@ import {
   ArrowLeft, Leaf, Factory, MapPin, Users, TrendingDown, TrendingUp,
   Zap, Truck, Trash2, Package, CheckCircle2, Clock, PlayCircle,
   RefreshCw, FileText, Sparkles, BarChart3, ShoppingBag, Target,
-  AlertTriangle, ChevronDown, ChevronUp, Pencil, X
+  AlertTriangle, ChevronDown, ChevronUp, Pencil, X, Download
 } from "lucide-react";
 import {
   Dialog,
@@ -704,7 +704,27 @@ function SuppliersTab({ businessId }: { businessId: number }) {
   );
 }
 
-function ProgressTab({ businessId }: { businessId: number }) {
+function exportProgressCsv(records: { month: string; actualEmissions: number; baselineEmissions: number; reductionPercent: number; notes?: string | null }[], businessName?: string) {
+  const header = ["Bulan", "Emisi Aktual (ton CO\u2082e)", "Baseline (ton CO\u2082e)", "Reduksi (%)", "Catatan"];
+  const rows = records.map((r) => [
+    r.month,
+    Number(r.actualEmissions).toFixed(3),
+    Number(r.baselineEmissions).toFixed(3),
+    Number(r.reductionPercent).toFixed(2),
+    r.notes ?? "",
+  ]);
+  const csv = [header, ...rows].map((row) => row.map((cell) => `"${String(cell).replace(/"/g, '""')}"`).join(",")).join("\n");
+  const blob = new Blob([csv], { type: "text/csv;charset=utf-8;" });
+  const url = URL.createObjectURL(blob);
+  const a = document.createElement("a");
+  a.href = url;
+  const safeName = businessName ? businessName.replace(/[/\\:*?"<>|]/g, "").replace(/\s+/g, "_").replace(/_{2,}/g, "_").replace(/^_|_$/g, "") : "";
+  a.download = `${safeName ? safeName + "_" : ""}progress_emisi.csv`;
+  a.click();
+  URL.revokeObjectURL(url);
+}
+
+function ProgressTab({ businessId, businessName }: { businessId: number; businessName?: string }) {
   const { toast } = useToast();
   const qc = useQueryClient();
   const [showForm, setShowForm] = useState(false);
@@ -819,10 +839,23 @@ function ProgressTab({ businessId }: { businessId: number }) {
 
       <div className="flex justify-between items-center">
         <h3 className="text-sm font-semibold text-gray-700">Riwayat Progress</h3>
-        <Button size="sm" variant="outline" className="gap-2" onClick={() => setShowForm(!showForm)}>
-          <Clock className="w-3 h-3" />
-          Catat Progress
-        </Button>
+        <div className="flex gap-2">
+          {progress && progress.length > 0 && (
+            <Button
+              size="sm"
+              variant="outline"
+              className="gap-2 text-green-700 border-green-200 hover:bg-green-50"
+              onClick={() => exportProgressCsv(progress, businessName)}
+            >
+              <Download className="w-3 h-3" />
+              Export CSV
+            </Button>
+          )}
+          <Button size="sm" variant="outline" className="gap-2" onClick={() => setShowForm(!showForm)}>
+            <Clock className="w-3 h-3" />
+            Catat Progress
+          </Button>
+        </div>
       </div>
 
       {showForm && (
@@ -1237,7 +1270,7 @@ export default function BusinessDetail() {
           <TabsContent value="audit"><AuditTab businessId={businessId} /></TabsContent>
           <TabsContent value="action-plan"><ActionPlanTab businessId={businessId} /></TabsContent>
           <TabsContent value="suppliers"><SuppliersTab businessId={businessId} /></TabsContent>
-          <TabsContent value="progress"><ProgressTab businessId={businessId} /></TabsContent>
+          <TabsContent value="progress"><ProgressTab businessId={businessId} businessName={business?.name} /></TabsContent>
           <TabsContent value="esg"><EsgReportTab businessId={businessId} /></TabsContent>
         </Tabs>
       </div>
