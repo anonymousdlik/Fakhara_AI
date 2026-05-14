@@ -6,3 +6,9 @@ id = "1mkG8rescdxoyEzRGsVGf"
 uri = "file://TEKNOLOGI.md"
 type = "text"
 title = "Dokumentasi Teknologi — Fakhara AI"
+
+[[outputs]]
+id = "ppaMDTu_zxtuJ1MUQP5kg"
+uri = "file://README.md"
+type = "text"
+title = "README — Fakhara AI (Updated + Roadmap)"
