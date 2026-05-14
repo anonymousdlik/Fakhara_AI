@@ -3,6 +3,18 @@ import type { CarbonBreakdown } from "./carbonCalculator";
 
 const MODEL = "gpt-4o";
 
+export interface ClarifyingQuestion {
+  id: string;
+  question: string;
+  hint: string;
+}
+
+export interface ClarifyingAnswer {
+  questionId: string;
+  question: string;
+  answer: string;
+}
+
 interface Business {
   name: string;
   sector: string;
@@ -62,10 +74,58 @@ export interface EsgReportAI {
   reductionFromBaseline: number;
 }
 
+export async function generateClarifyingQuestions(
+  business: Business,
+  initialData: Pick<AuditData, "electricityKwh" | "fuelLiters" | "wasteKg">,
+): Promise<ClarifyingQuestion[]> {
+  const response = await openai.chat.completions.create({
+    model: MODEL,
+    max_completion_tokens: 600,
+    response_format: { type: "json_object" },
+    messages: [
+      {
+        role: "system",
+        content: `Kamu adalah agen AI audit karbon untuk UMKM Indonesia. Berdasarkan data awal bisnis, hasilkan 3 pertanyaan klarifikasi yang paling relevan untuk memperdalam analisis emisi karbon. Respon dalam JSON.`,
+      },
+      {
+        role: "user",
+        content: `Bisnis: ${business.name} (sektor: ${business.sector})
+Lokasi: ${business.location}, ${business.employeeCount} karyawan
+${business.description ? `Deskripsi: ${business.description}` : ""}
+
+Data awal yang sudah ada:
+- Listrik: ${initialData.electricityKwh} kWh/bulan
+- Bahan bakar: ${initialData.fuelLiters} liter/bulan
+- Sampah: ${initialData.wasteKg} kg/bulan
+
+Hasilkan tepat 3 pertanyaan klarifikasi yang akan membantu memperdalam analisis dan rekomendasi pengurangan emisi. Pilih pertanyaan yang paling relevan untuk sektor ${business.sector}.
+
+Format JSON:
+{
+  "questions": [
+    {
+      "id": "q1",
+      "question": "pertanyaan dalam Bahasa Indonesia",
+      "hint": "contoh jawaban atau panduan singkat"
+    }
+  ]
+}`,
+      },
+    ],
+  });
+
+  const content = response.choices[0]?.message?.content;
+  if (!content) return [];
+
+  const parsed = JSON.parse(content) as { questions: ClarifyingQuestion[] };
+  return parsed.questions.slice(0, 3);
+}
+
 export async function generateAuditInsights(
   business: Business,
   audit: AuditData,
   breakdown: CarbonBreakdown,
+  clarifyingAnswers?: ClarifyingAnswer[],
 ): Promise<string> {
   const response = await openai.chat.completions.create({
     model: MODEL,
@@ -90,7 +150,10 @@ Data Emisi:
 - Sampah: ${audit.wasteKg} kg → ${breakdown.wasteEmissions} ton CO2e
 - Rantai Pasok: ${breakdown.supplyChainEmissions} ton CO2e
 - TOTAL: ${breakdown.totalEmissions} ton CO2e/tahun
-
+${clarifyingAnswers && clarifyingAnswers.length > 0 ? `
+Informasi tambahan dari agen (pertanyaan klarifikasi):
+${clarifyingAnswers.map((a) => `- ${a.question}: ${a.answer}`).join("\n")}
+` : ""}
 Berikan insight singkat (3-4 paragraf) tentang:
 1. Penilaian keseluruhan jejak karbon ini
 2. Area emisi terbesar dan konteksnya untuk UMKM sektor ${business.sector}

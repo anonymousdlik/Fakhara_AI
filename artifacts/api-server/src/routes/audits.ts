@@ -6,7 +6,11 @@ import {
   calculateCarbonFootprint,
   type CarbonInputs,
 } from "../services/carbonCalculator";
-import { generateAuditInsights } from "../services/aiAgent";
+import {
+  generateAuditInsights,
+  generateClarifyingQuestions,
+  type ClarifyingAnswer,
+} from "../services/aiAgent";
 
 const router = Router();
 
@@ -37,6 +41,39 @@ router.get("/businesses/:id/audits", async (req, res) => {
   }
 });
 
+router.post("/businesses/:id/audits/questions", async (req, res) => {
+  try {
+    const businessId = Number(req.params["id"]);
+
+    const [business] = await db
+      .select()
+      .from(businesses)
+      .where(eq(businesses.id, businessId));
+    if (!business) return res.status(404).json({ error: "Bisnis tidak ditemukan" });
+
+    const { electricityKwh, fuelLiters, wasteKg } = req.body as {
+      electricityKwh: number;
+      fuelLiters: number;
+      wasteKg: number;
+    };
+
+    const questions = await generateClarifyingQuestions(
+      {
+        name: business.name,
+        sector: business.sector,
+        location: business.location,
+        employeeCount: business.employeeCount,
+        description: business.description,
+      },
+      { electricityKwh, fuelLiters, wasteKg },
+    );
+
+    return res.json({ questions });
+  } catch (err) {
+    return res.status(500).json({ error: "Gagal menghasilkan pertanyaan", detail: String(err) });
+  }
+});
+
 router.post("/businesses/:id/audits", async (req, res) => {
   try {
     const businessId = Number(req.params["id"]);
@@ -55,6 +92,7 @@ router.post("/businesses/:id/audits", async (req, res) => {
       supplyChainSpendIdr,
       vehicleCount,
       deliveriesPerMonth,
+      answers,
     } = req.body as {
       period: string;
       electricityKwh: number;
@@ -63,6 +101,7 @@ router.post("/businesses/:id/audits", async (req, res) => {
       supplyChainSpendIdr?: number;
       vehicleCount?: number;
       deliveriesPerMonth?: number;
+      answers?: ClarifyingAnswer[];
     };
 
     const inputs: CarbonInputs = {
@@ -96,6 +135,7 @@ router.post("/businesses/:id/audits", async (req, res) => {
           deliveriesPerMonth,
         },
         breakdown,
+        answers,
       );
     } catch {
       aiInsights = undefined;

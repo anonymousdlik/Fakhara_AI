@@ -42,10 +42,21 @@ const EMISSION_COLORS = {
   supplyChainEmissions: "#8b5cf6",
 };
 
+interface ClarifyingQuestion {
+  id: string;
+  question: string;
+  hint: string;
+}
+
+type AuditStep = "results" | "form" | "clarifying" | "processing";
+
 function AuditTab({ businessId }: { businessId: number }) {
   const { toast } = useToast();
   const qc = useQueryClient();
-  const [showForm, setShowForm] = useState(false);
+  const [step, setStep] = useState<AuditStep>("results");
+  const [loadingQuestions, setLoadingQuestions] = useState(false);
+  const [questions, setQuestions] = useState<ClarifyingQuestion[]>([]);
+  const [answers, setAnswers] = useState<Record<string, string>>({});
   const [form, setForm] = useState({
     period: "",
     electricityKwh: "",
@@ -67,33 +78,71 @@ function AuditTab({ businessId }: { businessId: number }) {
     queryFn: () => listAudits(businessId),
   });
 
+  const resetForm = () => {
+    setForm({ period: "", electricityKwh: "", fuelLiters: "", wasteKg: "", supplyChainSpendIdr: "", vehicleCount: "", deliveriesPerMonth: "" });
+    setQuestions([]);
+    setAnswers({});
+    setStep("results");
+  };
+
   const mutation = useMutation({
     mutationFn: () =>
-      createAudit(
-        businessId,
-        {
-          period: form.period,
-          electricityKwh: Number(form.electricityKwh),
-          fuelLiters: Number(form.fuelLiters),
-          wasteKg: Number(form.wasteKg),
-          supplyChainSpendIdr: form.supplyChainSpendIdr ? Number(form.supplyChainSpendIdr) : undefined,
-          vehicleCount: form.vehicleCount ? Number(form.vehicleCount) : undefined,
-          deliveriesPerMonth: form.deliveriesPerMonth ? Number(form.deliveriesPerMonth) : undefined,
-        },
-      ),
+      createAudit(businessId, {
+        period: form.period,
+        electricityKwh: Number(form.electricityKwh),
+        fuelLiters: Number(form.fuelLiters),
+        wasteKg: Number(form.wasteKg),
+        supplyChainSpendIdr: form.supplyChainSpendIdr ? Number(form.supplyChainSpendIdr) : undefined,
+        vehicleCount: form.vehicleCount ? Number(form.vehicleCount) : undefined,
+        deliveriesPerMonth: form.deliveriesPerMonth ? Number(form.deliveriesPerMonth) : undefined,
+        answers: questions.map((q) => ({ questionId: q.id, question: q.question, answer: answers[q.id] ?? "" })),
+      } as Parameters<typeof createAudit>[1]),
     onSuccess: () => {
       qc.invalidateQueries({ queryKey: ["latest-audit", businessId] });
       qc.invalidateQueries({ queryKey: ["audits", businessId] });
       qc.invalidateQueries({ queryKey: ["business", businessId] });
       qc.invalidateQueries({ queryKey: ["dashboard-summary"] });
-      setShowForm(false);
-      setForm({ period: "", electricityKwh: "", fuelLiters: "", wasteKg: "", supplyChainSpendIdr: "", vehicleCount: "", deliveriesPerMonth: "" });
-      toast({ title: "Audit berhasil disimpan!", description: "AI sedang menganalisis data Anda..." });
+      resetForm();
+      toast({ title: "Audit berhasil disimpan!", description: "Insight AI telah dihasilkan berdasarkan data Anda." });
     },
     onError: (err) => {
+      setStep("clarifying");
       toast({ title: "Gagal menyimpan audit", description: String(err), variant: "destructive" });
     },
   });
+
+  const handleFormNext = async (e: React.FormEvent) => {
+    e.preventDefault();
+    setLoadingQuestions(true);
+    setStep("clarifying");
+    try {
+      const res = await fetch(`/api/businesses/${businessId}/audits/questions`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          electricityKwh: Number(form.electricityKwh),
+          fuelLiters: Number(form.fuelLiters),
+          wasteKg: Number(form.wasteKg),
+        }),
+      });
+      const data = await res.json() as { questions: ClarifyingQuestion[] };
+      setQuestions(data.questions ?? []);
+    } catch {
+      toast({ title: "Tidak dapat memuat pertanyaan AI", description: "Lanjutkan tanpa pertanyaan klarifikasi", variant: "destructive" });
+      setQuestions([]);
+    } finally {
+      setLoadingQuestions(false);
+    }
+  };
+
+  const handleSubmitAudit = () => {
+    setStep("processing");
+    mutation.mutate();
+  };
+
+  const showForm = step === "form";
+  const showClarifying = step === "clarifying";
+  const showProcessing = step === "processing";
 
   const pieData = latestAudit
     ? [
@@ -106,7 +155,7 @@ function AuditTab({ businessId }: { businessId: number }) {
 
   return (
     <div className="space-y-6">
-      {!isLoading && !latestAudit && !showForm && (
+      {!isLoading && !latestAudit && step === "results" && (
         <Card className="border-0 shadow-sm bg-white">
           <CardContent className="py-12 text-center">
             <div className="w-16 h-16 bg-orange-100 rounded-full flex items-center justify-center mx-auto mb-4">
@@ -114,14 +163,14 @@ function AuditTab({ businessId }: { businessId: number }) {
             </div>
             <h3 className="text-lg font-semibold text-gray-700 mb-2">Belum Ada Data Audit</h3>
             <p className="text-sm text-gray-400 mb-4">Input data operasional Anda untuk menghitung jejak karbon</p>
-            <Button className="bg-green-600 hover:bg-green-700" onClick={() => setShowForm(true)}>
+            <Button className="bg-green-600 hover:bg-green-700" onClick={() => setStep("form")}>
               Mulai Audit Karbon
             </Button>
           </CardContent>
         </Card>
       )}
 
-      {latestAudit && !showForm && (
+      {latestAudit && step === "results" && (
         <>
           <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
             <Card className="border-0 shadow-sm bg-gradient-to-br from-green-500 to-emerald-600 text-white">
@@ -212,7 +261,7 @@ function AuditTab({ businessId }: { businessId: number }) {
           )}
 
           <div className="flex gap-3">
-            <Button variant="outline" className="gap-2" onClick={() => setShowForm(true)}>
+            <Button variant="outline" className="gap-2" onClick={() => setStep("form")}>
               <RefreshCw className="w-4 h-4" />
               Audit Baru
             </Button>
@@ -223,11 +272,19 @@ function AuditTab({ businessId }: { businessId: number }) {
       {showForm && (
         <Card className="border-0 shadow-sm bg-white">
           <CardHeader>
-            <CardTitle className="text-base">Input Data Operasional</CardTitle>
-            <p className="text-xs text-gray-500">Masukkan data bulanan untuk menghitung jejak karbon</p>
+            <div className="flex items-center justify-between">
+              <div>
+                <CardTitle className="text-base">Langkah 1/2 — Data Operasional</CardTitle>
+                <p className="text-xs text-gray-500 mt-0.5">Masukkan data bulanan bisnis Anda</p>
+              </div>
+              <div className="flex gap-1.5">
+                <span className="w-6 h-1.5 bg-green-500 rounded-full" />
+                <span className="w-6 h-1.5 bg-gray-200 rounded-full" />
+              </div>
+            </div>
           </CardHeader>
           <CardContent>
-            <form onSubmit={(e) => { e.preventDefault(); mutation.mutate(); }} className="space-y-4">
+            <form onSubmit={handleFormNext} className="space-y-4">
               <div>
                 <Label className="text-xs font-medium text-gray-700">Periode Audit</Label>
                 <Input placeholder="Contoh: 2024-Annual atau 2024-Q1" value={form.period} onChange={(e) => setForm({ ...form, period: e.target.value })} className="mt-1" required />
@@ -259,13 +316,81 @@ function AuditTab({ businessId }: { businessId: number }) {
                 </div>
               </div>
               <div className="flex gap-3 pt-2">
-                <Button type="submit" disabled={mutation.isPending} className="bg-green-600 hover:bg-green-700 gap-2">
-                  {mutation.isPending ? <RefreshCw className="w-4 h-4 animate-spin" /> : <BarChart3 className="w-4 h-4" />}
-                  {mutation.isPending ? "Menghitung & Menganalisis AI..." : "Hitung Jejak Karbon"}
+                <Button type="submit" disabled={loadingQuestions} className="bg-green-600 hover:bg-green-700 gap-2">
+                  {loadingQuestions ? <RefreshCw className="w-4 h-4 animate-spin" /> : <Sparkles className="w-4 h-4" />}
+                  {loadingQuestions ? "Agen AI Menyiapkan Pertanyaan..." : "Lanjut ke Pertanyaan AI"}
                 </Button>
-                <Button type="button" variant="outline" onClick={() => setShowForm(false)}>Batal</Button>
+                <Button type="button" variant="outline" onClick={resetForm}>Batal</Button>
               </div>
             </form>
+          </CardContent>
+        </Card>
+      )}
+
+      {showClarifying && (
+        <Card className="border-0 shadow-sm bg-white">
+          <CardHeader>
+            <div className="flex items-center justify-between">
+              <div>
+                <CardTitle className="text-base">Langkah 2/2 — Pertanyaan Klarifikasi AI</CardTitle>
+                <p className="text-xs text-gray-500 mt-0.5">Agen AI membutuhkan konteks lebih dalam untuk memberikan insight yang tepat</p>
+              </div>
+              <div className="flex gap-1.5">
+                <span className="w-6 h-1.5 bg-green-500 rounded-full" />
+                <span className="w-6 h-1.5 bg-green-500 rounded-full" />
+              </div>
+            </div>
+          </CardHeader>
+          <CardContent>
+            {loadingQuestions ? (
+              <div className="py-10 text-center">
+                <div className="w-12 h-12 bg-green-100 rounded-full flex items-center justify-center mx-auto mb-3">
+                  <Sparkles className="w-6 h-6 text-green-600 animate-pulse" />
+                </div>
+                <p className="text-sm text-gray-500">Agen AI sedang menyusun pertanyaan klarifikasi...</p>
+              </div>
+            ) : (
+              <div className="space-y-5">
+                {questions.map((q, idx) => (
+                  <div key={q.id} className="space-y-1.5">
+                    <Label className="text-sm font-medium text-gray-800">
+                      <span className="inline-flex items-center justify-center w-5 h-5 bg-green-100 text-green-700 text-xs font-bold rounded-full mr-2">{idx + 1}</span>
+                      {q.question}
+                    </Label>
+                    <Input
+                      placeholder={q.hint}
+                      value={answers[q.id] ?? ""}
+                      onChange={(e) => setAnswers((prev) => ({ ...prev, [q.id]: e.target.value }))}
+                      className="mt-1"
+                    />
+                  </div>
+                ))}
+                <div className="flex gap-3 pt-3 border-t border-gray-100">
+                  <Button onClick={handleSubmitAudit} className="bg-green-600 hover:bg-green-700 gap-2">
+                    <BarChart3 className="w-4 h-4" />
+                    Mulai Analisis AI
+                  </Button>
+                  <Button variant="outline" onClick={() => setStep("form")}>Kembali</Button>
+                  <Button variant="ghost" onClick={resetForm} className="ml-auto text-gray-400">Batal</Button>
+                </div>
+              </div>
+            )}
+          </CardContent>
+        </Card>
+      )}
+
+      {showProcessing && (
+        <Card className="border-0 shadow-sm bg-gradient-to-br from-green-50 to-emerald-50">
+          <CardContent className="py-14 text-center">
+            <div className="w-16 h-16 bg-green-100 rounded-full flex items-center justify-center mx-auto mb-5">
+              <Sparkles className="w-8 h-8 text-green-600 animate-pulse" />
+            </div>
+            <h3 className="text-base font-semibold text-green-800 mb-2">Agen AI Sedang Menganalisis...</h3>
+            <p className="text-sm text-gray-500 max-w-sm mx-auto mb-6">Menghitung jejak karbon, menelaah data operasional, dan menghasilkan insight berbasis konteks bisnis Anda</p>
+            <div className="flex items-center justify-center gap-2 text-xs text-green-600">
+              <RefreshCw className="w-3.5 h-3.5 animate-spin" />
+              Mengkalkulasi emisi &amp; merumuskan rekomendasi...
+            </div>
           </CardContent>
         </Card>
       )}
