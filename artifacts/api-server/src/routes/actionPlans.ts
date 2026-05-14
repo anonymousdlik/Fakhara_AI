@@ -6,7 +6,7 @@ import {
   audits,
   businesses,
 } from "@workspace/db/schema";
-import { eq, desc } from "drizzle-orm";
+import { eq, desc, and } from "drizzle-orm";
 import { generateActionPlan } from "../services/aiAgent";
 
 const router = Router();
@@ -140,8 +140,22 @@ router.post("/businesses/:id/action-plan", async (req, res) => {
 
 router.patch("/businesses/:id/action-plan/items/:itemId", async (req, res) => {
   try {
+    const businessId = Number(req.params["id"]);
     const itemId = Number(req.params["itemId"]);
     const { status } = req.body as { status: string };
+
+    const validStatuses = ["pending", "in_progress", "completed"];
+    if (!validStatuses.includes(status)) {
+      return res.status(400).json({ error: "Status tidak valid" });
+    }
+
+    const [ownership] = await db
+      .select({ id: actionItems.id })
+      .from(actionItems)
+      .innerJoin(actionPlans, eq(actionItems.planId, actionPlans.id))
+      .where(and(eq(actionItems.id, itemId), eq(actionPlans.businessId, businessId)));
+
+    if (!ownership) return res.status(404).json({ error: "Item tidak ditemukan" });
 
     const [item] = await db
       .update(actionItems)
