@@ -47,6 +47,14 @@ export interface CreateBusinessBody {
   description?: string;
 }
 
+export interface PatchBusinessBody {
+  name?: string;
+  sector?: string;
+  location?: string;
+  employeeCount?: number;
+  description?: string;
+}
+
 export interface Audit {
   id: number;
   businessId: number;

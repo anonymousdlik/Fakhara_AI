@@ -1,14 +1,17 @@
 import { useState } from "react";
-import { useParams, Link } from "wouter";
+import { useParams, Link, useLocation } from "wouter";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import {
   getBusiness,
+  patchBusiness,
+  deleteBusiness,
   createAudit,
   getLatestAudit,
   listAudits,
   generateActionPlan,
   getActionPlan,
   updateActionItem,
+  deleteActionItem,
   getSupplierRecommendations,
   getProgressHistory,
   logProgress,
@@ -28,8 +31,25 @@ import {
   ArrowLeft, Leaf, Factory, MapPin, Users, TrendingDown, TrendingUp,
   Zap, Truck, Trash2, Package, CheckCircle2, Clock, PlayCircle,
   RefreshCw, FileText, Sparkles, BarChart3, ShoppingBag, Target,
-  AlertTriangle, ChevronDown, ChevronUp
+  AlertTriangle, ChevronDown, ChevronUp, Pencil, X
 } from "lucide-react";
+import {
+  Dialog,
+  DialogContent,
+  DialogHeader,
+  DialogTitle,
+  DialogFooter,
+} from "@/components/ui/dialog";
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+} from "@/components/ui/alert-dialog";
 import {
   AreaChart, Area, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer,
   PieChart, Pie, Cell, Legend, LabelList,
@@ -401,6 +421,7 @@ function AuditTab({ businessId }: { businessId: number }) {
 function ActionPlanTab({ businessId }: { businessId: number }) {
   const { toast } = useToast();
   const qc = useQueryClient();
+  const [deletingItemId, setDeletingItemId] = useState<number | null>(null);
 
   const { data: plan, isLoading } = useQuery({
     queryKey: ["action-plan", businessId],
@@ -425,6 +446,19 @@ function ActionPlanTab({ businessId }: { businessId: number }) {
     onSuccess: () => {
       qc.invalidateQueries({ queryKey: ["action-plan", businessId] });
       qc.invalidateQueries({ queryKey: ["business", businessId] });
+    },
+  });
+
+  const deleteItemMutation = useMutation({
+    mutationFn: (itemId: number) => deleteActionItem(businessId, itemId),
+    onSuccess: () => {
+      qc.invalidateQueries({ queryKey: ["action-plan", businessId] });
+      qc.invalidateQueries({ queryKey: ["business", businessId] });
+      setDeletingItemId(null);
+      toast({ title: "Item berhasil dihapus" });
+    },
+    onError: (err) => {
+      toast({ title: "Gagal menghapus item", description: String(err), variant: "destructive" });
     },
   });
 
@@ -552,6 +586,14 @@ function ActionPlanTab({ businessId }: { businessId: number }) {
                           Selesai
                         </Button>
                       )}
+                      <Button
+                        size="sm"
+                        variant="ghost"
+                        className="h-6 w-6 p-0 text-gray-300 hover:text-red-500"
+                        onClick={() => setDeletingItemId(item.id)}
+                      >
+                        <X className="w-3.5 h-3.5" />
+                      </Button>
                     </div>
                   </div>
                 </div>
@@ -565,6 +607,26 @@ function ActionPlanTab({ businessId }: { businessId: number }) {
         {generateMutation.isPending ? <RefreshCw className="w-4 h-4 animate-spin" /> : <RefreshCw className="w-4 h-4" />}
         Regenerate Rencana AI
       </Button>
+
+      <AlertDialog open={deletingItemId !== null} onOpenChange={(open) => { if (!open) setDeletingItemId(null); }}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>Hapus Item Rencana Aksi?</AlertDialogTitle>
+            <AlertDialogDescription>
+              Item ini akan dihapus permanen dan tidak dapat dikembalikan.
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel>Batal</AlertDialogCancel>
+            <AlertDialogAction
+              className="bg-red-600 hover:bg-red-700"
+              onClick={() => { if (deletingItemId !== null) deleteItemMutation.mutate(deletingItemId); }}
+            >
+              Hapus
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
     </div>
   );
 }
@@ -944,10 +1006,51 @@ function EsgReportTab({ businessId }: { businessId: number }) {
 export default function BusinessDetail() {
   const { id } = useParams<{ id: string }>();
   const businessId = Number(id);
+  const [, navigate] = useLocation();
+  const { toast } = useToast();
+  const qc = useQueryClient();
+
+  const [showEditDialog, setShowEditDialog] = useState(false);
+  const [showDeleteDialog, setShowDeleteDialog] = useState(false);
+  const [editForm, setEditForm] = useState({ name: "", sector: "", location: "", employeeCount: "", description: "" });
 
   const { data: business, isLoading } = useQuery({
     queryKey: ["business", businessId],
     queryFn: () => getBusiness(businessId),
+  });
+
+  const editMutation = useMutation({
+    mutationFn: () =>
+      patchBusiness(businessId, {
+        name: editForm.name,
+        sector: editForm.sector,
+        location: editForm.location,
+        employeeCount: Number(editForm.employeeCount),
+        description: editForm.description || undefined,
+      }),
+    onSuccess: () => {
+      qc.invalidateQueries({ queryKey: ["business", businessId] });
+      qc.invalidateQueries({ queryKey: ["businesses"] });
+      qc.invalidateQueries({ queryKey: ["dashboard-summary"] });
+      setShowEditDialog(false);
+      toast({ title: "Bisnis berhasil diperbarui!" });
+    },
+    onError: (err) => {
+      toast({ title: "Gagal memperbarui bisnis", description: String(err), variant: "destructive" });
+    },
+  });
+
+  const deleteMutation = useMutation({
+    mutationFn: () => deleteBusiness(businessId),
+    onSuccess: () => {
+      qc.invalidateQueries({ queryKey: ["businesses"] });
+      qc.invalidateQueries({ queryKey: ["dashboard-summary"] });
+      toast({ title: "Bisnis berhasil dihapus" });
+      navigate("/");
+    },
+    onError: (err) => {
+      toast({ title: "Gagal menghapus bisnis", description: String(err), variant: "destructive" });
+    },
   });
 
   if (isLoading) {
@@ -995,7 +1098,7 @@ export default function BusinessDetail() {
         <Card className="border-0 shadow-sm bg-white mb-6">
           <CardContent className="pt-5 pb-4">
             <div className="flex items-start justify-between gap-4">
-              <div>
+              <div className="flex-1 min-w-0">
                 <div className="flex items-center gap-2 mb-1">
                   <Factory className="w-5 h-5 text-gray-400" />
                   <h1 className="text-xl font-bold text-gray-900">{business.name}</h1>
@@ -1006,6 +1109,35 @@ export default function BusinessDetail() {
                   <span className="flex items-center gap-1"><Users className="w-3.5 h-3.5" />{business.employeeCount} karyawan</span>
                 </div>
                 {business.description && <p className="text-sm text-gray-400 mt-2">{business.description}</p>}
+                <div className="flex gap-2 mt-3">
+                  <Button
+                    size="sm"
+                    variant="outline"
+                    className="gap-1.5 h-7 text-xs"
+                    onClick={() => {
+                      setEditForm({
+                        name: business.name,
+                        sector: business.sector,
+                        location: business.location,
+                        employeeCount: String(business.employeeCount),
+                        description: business.description ?? "",
+                      });
+                      setShowEditDialog(true);
+                    }}
+                  >
+                    <Pencil className="w-3 h-3" />
+                    Edit
+                  </Button>
+                  <Button
+                    size="sm"
+                    variant="outline"
+                    className="gap-1.5 h-7 text-xs text-red-600 border-red-200 hover:bg-red-50"
+                    onClick={() => setShowDeleteDialog(true)}
+                  >
+                    <Trash2 className="w-3 h-3" />
+                    Hapus Bisnis
+                  </Button>
+                </div>
               </div>
               {business.latestTotalEmissions !== null && business.latestTotalEmissions !== undefined && (
                 <div className="text-right flex-shrink-0">
@@ -1032,6 +1164,66 @@ export default function BusinessDetail() {
             )}
           </CardContent>
         </Card>
+
+        <Dialog open={showEditDialog} onOpenChange={setShowEditDialog}>
+          <DialogContent className="sm:max-w-md">
+            <DialogHeader>
+              <DialogTitle>Edit Profil Bisnis</DialogTitle>
+            </DialogHeader>
+            <form
+              onSubmit={(e) => { e.preventDefault(); editMutation.mutate(); }}
+              className="space-y-4 pt-1"
+            >
+              <div>
+                <Label className="text-xs font-medium text-gray-700">Nama Bisnis</Label>
+                <Input value={editForm.name} onChange={(e) => setEditForm({ ...editForm, name: e.target.value })} className="mt-1" required />
+              </div>
+              <div>
+                <Label className="text-xs font-medium text-gray-700">Sektor</Label>
+                <Input value={editForm.sector} onChange={(e) => setEditForm({ ...editForm, sector: e.target.value })} className="mt-1" required placeholder="kuliner, fashion, retail, manufaktur, jasa..." />
+              </div>
+              <div>
+                <Label className="text-xs font-medium text-gray-700">Lokasi</Label>
+                <Input value={editForm.location} onChange={(e) => setEditForm({ ...editForm, location: e.target.value })} className="mt-1" required />
+              </div>
+              <div>
+                <Label className="text-xs font-medium text-gray-700">Jumlah Karyawan</Label>
+                <Input type="number" min="1" value={editForm.employeeCount} onChange={(e) => setEditForm({ ...editForm, employeeCount: e.target.value })} className="mt-1" required />
+              </div>
+              <div>
+                <Label className="text-xs font-medium text-gray-700">Deskripsi (opsional)</Label>
+                <Textarea value={editForm.description} onChange={(e) => setEditForm({ ...editForm, description: e.target.value })} className="mt-1" rows={3} />
+              </div>
+              <DialogFooter className="gap-2">
+                <Button type="button" variant="outline" onClick={() => setShowEditDialog(false)}>Batal</Button>
+                <Button type="submit" className="bg-green-600 hover:bg-green-700" disabled={editMutation.isPending}>
+                  {editMutation.isPending ? <RefreshCw className="w-4 h-4 animate-spin mr-2" /> : null}
+                  Simpan
+                </Button>
+              </DialogFooter>
+            </form>
+          </DialogContent>
+        </Dialog>
+
+        <AlertDialog open={showDeleteDialog} onOpenChange={setShowDeleteDialog}>
+          <AlertDialogContent>
+            <AlertDialogHeader>
+              <AlertDialogTitle>Hapus Bisnis "{business.name}"?</AlertDialogTitle>
+              <AlertDialogDescription>
+                Semua data bisnis ini termasuk audit, rencana aksi, dan laporan akan dihapus permanen. Tindakan ini tidak dapat dibatalkan.
+              </AlertDialogDescription>
+            </AlertDialogHeader>
+            <AlertDialogFooter>
+              <AlertDialogCancel>Batal</AlertDialogCancel>
+              <AlertDialogAction
+                className="bg-red-600 hover:bg-red-700"
+                onClick={() => deleteMutation.mutate()}
+              >
+                {deleteMutation.isPending ? "Menghapus..." : "Hapus Permanen"}
+              </AlertDialogAction>
+            </AlertDialogFooter>
+          </AlertDialogContent>
+        </AlertDialog>
 
         <Tabs defaultValue="audit">
           <TabsList className="bg-white border-0 shadow-sm mb-5 w-full justify-start overflow-x-auto">

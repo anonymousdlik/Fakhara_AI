@@ -36,6 +36,7 @@ import type {
   OpenaiConversationWithMessages,
   OpenaiError,
   OpenaiMessage,
+  PatchBusinessBody,
   ProgressRecord,
   SendOpenaiMessageBody,
   SupplierRecommendation,
@@ -376,7 +377,7 @@ export function useGetBusiness<
 }
 
 /**
- * @summary Update a business profile
+ * @summary Update a business profile (full replace)
  */
 export const getUpdateBusinessUrl = (id: number) => {
   return `/api/businesses/${id}`;
@@ -440,7 +441,7 @@ export type UpdateBusinessMutationBody = BodyType<CreateBusinessBody>;
 export type UpdateBusinessMutationError = ErrorType<unknown>;
 
 /**
- * @summary Update a business profile
+ * @summary Update a business profile (full replace)
  */
 export const useUpdateBusiness = <
   TError = ErrorType<unknown>,
@@ -460,6 +461,177 @@ export const useUpdateBusiness = <
   TContext
 > => {
   return useMutation(getUpdateBusinessMutationOptions(options));
+};
+
+/**
+ * @summary Partially update a business profile
+ */
+export const getPatchBusinessUrl = (id: number) => {
+  return `/api/businesses/${id}`;
+};
+
+export const patchBusiness = async (
+  id: number,
+  patchBusinessBody: PatchBusinessBody,
+  options?: RequestInit,
+): Promise<Business> => {
+  return customFetch<Business>(getPatchBusinessUrl(id), {
+    ...options,
+    method: "PATCH",
+    headers: { "Content-Type": "application/json", ...options?.headers },
+    body: JSON.stringify(patchBusinessBody),
+  });
+};
+
+export const getPatchBusinessMutationOptions = <
+  TError = ErrorType<void>,
+  TContext = unknown,
+>(options?: {
+  mutation?: UseMutationOptions<
+    Awaited<ReturnType<typeof patchBusiness>>,
+    TError,
+    { id: number; data: BodyType<PatchBusinessBody> },
+    TContext
+  >;
+  request?: SecondParameter<typeof customFetch>;
+}): UseMutationOptions<
+  Awaited<ReturnType<typeof patchBusiness>>,
+  TError,
+  { id: number; data: BodyType<PatchBusinessBody> },
+  TContext
+> => {
+  const mutationKey = ["patchBusiness"];
+  const { mutation: mutationOptions, request: requestOptions } = options
+    ? options.mutation &&
+      "mutationKey" in options.mutation &&
+      options.mutation.mutationKey
+      ? options
+      : { ...options, mutation: { ...options.mutation, mutationKey } }
+    : { mutation: { mutationKey }, request: undefined };
+
+  const mutationFn: MutationFunction<
+    Awaited<ReturnType<typeof patchBusiness>>,
+    { id: number; data: BodyType<PatchBusinessBody> }
+  > = (props) => {
+    const { id, data } = props ?? {};
+
+    return patchBusiness(id, data, requestOptions);
+  };
+
+  return { mutationFn, ...mutationOptions };
+};
+
+export type PatchBusinessMutationResult = NonNullable<
+  Awaited<ReturnType<typeof patchBusiness>>
+>;
+export type PatchBusinessMutationBody = BodyType<PatchBusinessBody>;
+export type PatchBusinessMutationError = ErrorType<void>;
+
+/**
+ * @summary Partially update a business profile
+ */
+export const usePatchBusiness = <
+  TError = ErrorType<void>,
+  TContext = unknown,
+>(options?: {
+  mutation?: UseMutationOptions<
+    Awaited<ReturnType<typeof patchBusiness>>,
+    TError,
+    { id: number; data: BodyType<PatchBusinessBody> },
+    TContext
+  >;
+  request?: SecondParameter<typeof customFetch>;
+}): UseMutationResult<
+  Awaited<ReturnType<typeof patchBusiness>>,
+  TError,
+  { id: number; data: BodyType<PatchBusinessBody> },
+  TContext
+> => {
+  return useMutation(getPatchBusinessMutationOptions(options));
+};
+
+/**
+ * @summary Delete a business and all its data
+ */
+export const getDeleteBusinessUrl = (id: number) => {
+  return `/api/businesses/${id}`;
+};
+
+export const deleteBusiness = async (
+  id: number,
+  options?: RequestInit,
+): Promise<void> => {
+  return customFetch<void>(getDeleteBusinessUrl(id), {
+    ...options,
+    method: "DELETE",
+  });
+};
+
+export const getDeleteBusinessMutationOptions = <
+  TError = ErrorType<void>,
+  TContext = unknown,
+>(options?: {
+  mutation?: UseMutationOptions<
+    Awaited<ReturnType<typeof deleteBusiness>>,
+    TError,
+    { id: number },
+    TContext
+  >;
+  request?: SecondParameter<typeof customFetch>;
+}): UseMutationOptions<
+  Awaited<ReturnType<typeof deleteBusiness>>,
+  TError,
+  { id: number },
+  TContext
+> => {
+  const mutationKey = ["deleteBusiness"];
+  const { mutation: mutationOptions, request: requestOptions } = options
+    ? options.mutation &&
+      "mutationKey" in options.mutation &&
+      options.mutation.mutationKey
+      ? options
+      : { ...options, mutation: { ...options.mutation, mutationKey } }
+    : { mutation: { mutationKey }, request: undefined };
+
+  const mutationFn: MutationFunction<
+    Awaited<ReturnType<typeof deleteBusiness>>,
+    { id: number }
+  > = (props) => {
+    const { id } = props ?? {};
+
+    return deleteBusiness(id, requestOptions);
+  };
+
+  return { mutationFn, ...mutationOptions };
+};
+
+export type DeleteBusinessMutationResult = NonNullable<
+  Awaited<ReturnType<typeof deleteBusiness>>
+>;
+
+export type DeleteBusinessMutationError = ErrorType<void>;
+
+/**
+ * @summary Delete a business and all its data
+ */
+export const useDeleteBusiness = <
+  TError = ErrorType<void>,
+  TContext = unknown,
+>(options?: {
+  mutation?: UseMutationOptions<
+    Awaited<ReturnType<typeof deleteBusiness>>,
+    TError,
+    { id: number },
+    TContext
+  >;
+  request?: SecondParameter<typeof customFetch>;
+}): UseMutationResult<
+  Awaited<ReturnType<typeof deleteBusiness>>,
+  TError,
+  { id: number },
+  TContext
+> => {
+  return useMutation(getDeleteBusinessMutationOptions(options));
 };
 
 /**
@@ -892,6 +1064,91 @@ export const useGenerateActionPlan = <
   TContext
 > => {
   return useMutation(getGenerateActionPlanMutationOptions(options));
+};
+
+/**
+ * @summary Delete an action item
+ */
+export const getDeleteActionItemUrl = (id: number, itemId: number) => {
+  return `/api/businesses/${id}/action-plan/items/${itemId}`;
+};
+
+export const deleteActionItem = async (
+  id: number,
+  itemId: number,
+  options?: RequestInit,
+): Promise<void> => {
+  return customFetch<void>(getDeleteActionItemUrl(id, itemId), {
+    ...options,
+    method: "DELETE",
+  });
+};
+
+export const getDeleteActionItemMutationOptions = <
+  TError = ErrorType<void>,
+  TContext = unknown,
+>(options?: {
+  mutation?: UseMutationOptions<
+    Awaited<ReturnType<typeof deleteActionItem>>,
+    TError,
+    { id: number; itemId: number },
+    TContext
+  >;
+  request?: SecondParameter<typeof customFetch>;
+}): UseMutationOptions<
+  Awaited<ReturnType<typeof deleteActionItem>>,
+  TError,
+  { id: number; itemId: number },
+  TContext
+> => {
+  const mutationKey = ["deleteActionItem"];
+  const { mutation: mutationOptions, request: requestOptions } = options
+    ? options.mutation &&
+      "mutationKey" in options.mutation &&
+      options.mutation.mutationKey
+      ? options
+      : { ...options, mutation: { ...options.mutation, mutationKey } }
+    : { mutation: { mutationKey }, request: undefined };
+
+  const mutationFn: MutationFunction<
+    Awaited<ReturnType<typeof deleteActionItem>>,
+    { id: number; itemId: number }
+  > = (props) => {
+    const { id, itemId } = props ?? {};
+
+    return deleteActionItem(id, itemId, requestOptions);
+  };
+
+  return { mutationFn, ...mutationOptions };
+};
+
+export type DeleteActionItemMutationResult = NonNullable<
+  Awaited<ReturnType<typeof deleteActionItem>>
+>;
+
+export type DeleteActionItemMutationError = ErrorType<void>;
+
+/**
+ * @summary Delete an action item
+ */
+export const useDeleteActionItem = <
+  TError = ErrorType<void>,
+  TContext = unknown,
+>(options?: {
+  mutation?: UseMutationOptions<
+    Awaited<ReturnType<typeof deleteActionItem>>,
+    TError,
+    { id: number; itemId: number },
+    TContext
+  >;
+  request?: SecondParameter<typeof customFetch>;
+}): UseMutationResult<
+  Awaited<ReturnType<typeof deleteActionItem>>,
+  TError,
+  { id: number; itemId: number },
+  TContext
+> => {
+  return useMutation(getDeleteActionItemMutationOptions(options));
 };
 
 /**

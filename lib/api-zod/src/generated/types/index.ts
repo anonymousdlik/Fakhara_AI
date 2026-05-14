@@ -26,6 +26,7 @@ export * from "./openaiConversation";
 export * from "./openaiConversationWithMessages";
 export * from "./openaiError";
 export * from "./openaiMessage";
+export * from "./patchBusinessBody";
 export * from "./progressRecord";
 export * from "./sendOpenaiMessageBody";
 export * from "./sendOpenaiVoiceMessageBody";

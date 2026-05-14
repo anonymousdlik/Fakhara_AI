@@ -133,6 +133,62 @@ router.put("/businesses/:id", async (req, res) => {
   }
 });
 
+router.patch("/businesses/:id", async (req, res) => {
+  try {
+    const id = Number(req.params["id"]);
+    const { name, sector, location, employeeCount, description } = req.body as {
+      name?: string;
+      sector?: string;
+      location?: string;
+      employeeCount?: number;
+      description?: string;
+    };
+
+    const updates: Record<string, unknown> = { updatedAt: new Date() };
+    if (name !== undefined) updates.name = name;
+    if (sector !== undefined) updates.sector = sector;
+    if (location !== undefined) updates.location = location;
+    if (employeeCount !== undefined) updates.employeeCount = employeeCount;
+    if (description !== undefined) updates.description = description;
+
+    const [row] = await db
+      .update(businesses)
+      .set(updates)
+      .where(eq(businesses.id, id))
+      .returning();
+
+    if (!row) return res.status(404).json({ error: "Bisnis tidak ditemukan" });
+
+    return res.json(row);
+  } catch (err) {
+    return res.status(500).json({ error: "Gagal mengupdate bisnis", detail: String(err) });
+  }
+});
+
+router.delete("/businesses/:id", async (req, res) => {
+  try {
+    const id = Number(req.params["id"]);
+
+    const [existing] = await db.select({ id: businesses.id }).from(businesses).where(eq(businesses.id, id));
+    if (!existing) return res.status(404).json({ error: "Bisnis tidak ditemukan" });
+
+    await db.transaction(async (tx) => {
+      const allPlans = await tx.select({ id: actionPlans.id }).from(actionPlans).where(eq(actionPlans.businessId, id));
+      for (const plan of allPlans) {
+        await tx.delete(actionItems).where(eq(actionItems.planId, plan.id));
+      }
+      await tx.delete(actionPlans).where(eq(actionPlans.businessId, id));
+      await tx.delete(audits).where(eq(audits.businessId, id));
+      await tx.delete(progressRecords).where(eq(progressRecords.businessId, id));
+      await tx.delete(businesses).where(eq(businesses.id, id));
+    });
+
+    return res.status(204).send();
+  } catch (err) {
+    return res.status(500).json({ error: "Gagal menghapus bisnis", detail: String(err) });
+  }
+});
+
 router.get("/dashboard/summary", async (_req, res) => {
   try {
     const allBusinesses = await db.select().from(businesses);

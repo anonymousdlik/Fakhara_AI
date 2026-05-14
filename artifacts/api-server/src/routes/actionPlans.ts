@@ -138,6 +138,27 @@ router.post("/businesses/:id/action-plan", async (req, res) => {
   }
 });
 
+router.delete("/businesses/:id/action-plan/items/:itemId", async (req, res) => {
+  try {
+    const businessId = Number(req.params["id"]);
+    const itemId = Number(req.params["itemId"]);
+
+    const [ownership] = await db
+      .select({ id: actionItems.id })
+      .from(actionItems)
+      .innerJoin(actionPlans, eq(actionItems.planId, actionPlans.id))
+      .where(and(eq(actionItems.id, itemId), eq(actionPlans.businessId, businessId)));
+
+    if (!ownership) return res.status(404).json({ error: "Item tidak ditemukan" });
+
+    await db.delete(actionItems).where(eq(actionItems.id, itemId));
+
+    return res.status(204).send();
+  } catch (err) {
+    return res.status(500).json({ error: "Gagal menghapus item", detail: String(err) });
+  }
+});
+
 router.patch("/businesses/:id/action-plan/items/:itemId", async (req, res) => {
   try {
     const businessId = Number(req.params["id"]);

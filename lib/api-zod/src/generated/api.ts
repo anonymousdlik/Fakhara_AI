@@ -75,7 +75,7 @@ export const GetBusinessResponse = zod.object({
 });
 
 /**
- * @summary Update a business profile
+ * @summary Update a business profile (full replace)
  */
 export const UpdateBusinessParams = zod.object({
   id: zod.coerce.number(),
@@ -102,6 +102,43 @@ export const UpdateBusinessResponse = zod.object({
   description: zod.string().optional(),
   createdAt: zod.coerce.date(),
   updatedAt: zod.coerce.date(),
+});
+
+/**
+ * @summary Partially update a business profile
+ */
+export const PatchBusinessParams = zod.object({
+  id: zod.coerce.number(),
+});
+
+export const PatchBusinessBody = zod.object({
+  name: zod.string().optional(),
+  sector: zod.string().optional(),
+  location: zod.string().optional(),
+  employeeCount: zod.number().optional(),
+  description: zod.string().optional(),
+});
+
+export const PatchBusinessResponse = zod.object({
+  id: zod.number(),
+  name: zod.string(),
+  sector: zod
+    .string()
+    .describe(
+      "Business sector (e.g. kuliner, fashion, retail, manufaktur, jasa)",
+    ),
+  location: zod.string(),
+  employeeCount: zod.number(),
+  description: zod.string().optional(),
+  createdAt: zod.coerce.date(),
+  updatedAt: zod.coerce.date(),
+});
+
+/**
+ * @summary Delete a business and all its data
+ */
+export const DeleteBusinessParams = zod.object({
+  id: zod.coerce.number(),
 });
 
 /**
@@ -221,6 +258,14 @@ export const GetActionPlanResponse = zod.object({
  */
 export const GenerateActionPlanParams = zod.object({
   id: zod.coerce.number(),
+});
+
+/**
+ * @summary Delete an action item
+ */
+export const DeleteActionItemParams = zod.object({
+  id: zod.coerce.number(),
+  itemId: zod.coerce.number(),
 });
 
 /**

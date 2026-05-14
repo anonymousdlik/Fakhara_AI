@@ -92,7 +92,7 @@ paths:
     put:
       operationId: updateBusiness
       tags: [businesses]
-      summary: Update a business profile
+      summary: Update a business profile (full replace)
       parameters:
         - name: id
           in: path
@@ -112,6 +112,46 @@ paths:
             application/json:
               schema:
                 $ref: "#/components/schemas/Business"
+    patch:
+      operationId: patchBusiness
+      tags: [businesses]
+      summary: Partially update a business profile
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: integer
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/PatchBusinessBody"
+      responses:
+        "200":
+          description: Updated business
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Business"
+        "404":
+          description: Not found
+    delete:
+      operationId: deleteBusiness
+      tags: [businesses]
+      summary: Delete a business and all its data
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: integer
+      responses:
+        "204":
+          description: Deleted
+        "404":
+          description: Not found
 
   /businesses/{id}/audits:
     get:
@@ -217,6 +257,26 @@ paths:
                 $ref: "#/components/schemas/ActionPlan"
 
   /businesses/{id}/action-plan/items/{itemId}:
+    delete:
+      operationId: deleteActionItem
+      tags: [action-plans]
+      summary: Delete an action item
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: integer
+        - name: itemId
+          in: path
+          required: true
+          schema:
+            type: integer
+      responses:
+        "204":
+          description: Deleted
+        "404":
+          description: Not found
     patch:
       operationId: updateActionItem
       tags: [action-plans]
@@ -602,6 +662,20 @@ components:
         - sector
         - location
         - employeeCount
+
+    PatchBusinessBody:
+      type: object
+      properties:
+        name:
+          type: string
+        sector:
+          type: string
+        location:
+          type: string
+        employeeCount:
+          type: integer
+        description:
+          type: string
 
     Audit:
       type: object
