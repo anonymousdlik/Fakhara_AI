@@ -32,7 +32,7 @@ import {
 } from "lucide-react";
 import {
   AreaChart, Area, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer,
-  PieChart, Pie, Cell, Legend
+  PieChart, Pie, Cell, Legend, LabelList,
 } from "recharts";
 
 const EMISSION_COLORS = {
@@ -682,8 +682,16 @@ function ProgressTab({ businessId }: { businessId: number }) {
             <CardTitle className="text-sm font-semibold text-gray-700">Tren Pengurangan Emisi Bulanan</CardTitle>
           </CardHeader>
           <CardContent>
-            <ResponsiveContainer width="100%" height={220}>
-              <AreaChart data={progress.map((p) => ({ month: p.month, aktual: p.actualEmissions, baseline: p.baselineEmissions, reduksi: p.reductionPercent }))}>
+            <ResponsiveContainer width="100%" height={260}>
+              <AreaChart
+                data={progress.map((p) => ({
+                  month: p.month,
+                  aktual: Number(p.actualEmissions),
+                  baseline: Number(p.baselineEmissions),
+                  reduksi: Number(p.reductionPercent),
+                }))}
+                margin={{ top: 28, right: 16, left: 0, bottom: 0 }}
+              >
                 <defs>
                   <linearGradient id="gradActual" x1="0" y1="0" x2="0" y2="1">
                     <stop offset="5%" stopColor="#10b981" stopOpacity={0.3} />
@@ -697,9 +705,50 @@ function ProgressTab({ businessId }: { businessId: number }) {
                 <CartesianGrid strokeDasharray="3 3" stroke="#f0fdf4" />
                 <XAxis dataKey="month" tick={{ fontSize: 10 }} />
                 <YAxis tick={{ fontSize: 10 }} />
-                <Tooltip formatter={(v: number, name: string) => [`${v.toFixed(3)} ton`, name === "aktual" ? "Emisi Aktual" : "Baseline"]} />
+                <Tooltip
+                  content={({ active, payload }) => {
+                    if (!active || !payload || !payload.length) return null;
+                    const d = payload[0]?.payload;
+                    const isReduction = d.reduksi > 0;
+                    const isNeutral = d.reduksi === 0;
+                    return (
+                      <div className="bg-white border border-gray-100 rounded-lg shadow-md px-3 py-2 text-xs space-y-1">
+                        <p className="font-semibold text-gray-700">{d.month}</p>
+                        <p className="text-gray-500">Baseline: <span className="font-medium text-gray-700">{d.baseline.toFixed(3)} ton</span></p>
+                        <p className="text-gray-500">Aktual: <span className="font-medium text-green-700">{d.aktual.toFixed(3)} ton</span></p>
+                        <p className={isNeutral ? "text-gray-500 font-semibold" : isReduction ? "text-green-600 font-semibold" : "text-red-500 font-semibold"}>
+                          {isNeutral ? "→ Tidak ada perubahan" : isReduction ? `↓ Reduksi ${d.reduksi.toFixed(1)}%` : `↑ Kenaikan ${Math.abs(d.reduksi).toFixed(1)}%`}
+                        </p>
+                      </div>
+                    );
+                  }}
+                />
                 <Area type="monotone" dataKey="baseline" stroke="#94a3b8" fill="url(#gradBaseline)" strokeWidth={1} strokeDasharray="4 4" />
-                <Area type="monotone" dataKey="aktual" stroke="#10b981" fill="url(#gradActual)" strokeWidth={2} />
+                <Area type="monotone" dataKey="aktual" stroke="#10b981" fill="url(#gradActual)" strokeWidth={2} dot={{ r: 4, fill: "#10b981", strokeWidth: 0 }}>
+                  <LabelList
+                    dataKey="reduksi"
+                    position="top"
+                    content={({ x, y, value }: { x?: number | string; y?: number | string; value?: number | string }) => {
+                      if (value === undefined || value === null) return null;
+                      const num = Number(value);
+                      const arrow = num > 0 ? "↓" : num < 0 ? "↑" : "→";
+                      const label = `${arrow}${Math.abs(num).toFixed(1)}%`;
+                      const color = num > 0 ? "#059669" : num < 0 ? "#dc2626" : "#6b7280";
+                      return (
+                        <text
+                          x={Number(x)}
+                          y={Number(y) - 8}
+                          fill={color}
+                          fontSize={9}
+                          fontWeight={600}
+                          textAnchor="middle"
+                        >
+                          {label}
+                        </text>
+                      );
+                    }}
+                  />
+                </Area>
               </AreaChart>
             </ResponsiveContainer>
           </CardContent>
