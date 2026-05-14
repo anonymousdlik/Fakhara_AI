@@ -62,7 +62,7 @@ router.post("/businesses/:id/progress", async (req, res) => {
       reductionPercent: Number(row.reductionPercent),
     });
   } catch (err) {
-    res.status(500).json({ error: "Gagal mencatat progress", detail: String(err) });
+    return res.status(500).json({ error: "Gagal mencatat progress", detail: String(err) });
   }
 });
 

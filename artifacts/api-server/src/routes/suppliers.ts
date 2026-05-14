@@ -86,7 +86,7 @@ router.get("/businesses/:id/suppliers", async (req, res) => {
       })),
     );
   } catch (err) {
-    res.status(500).json({ error: "Gagal mengambil rekomendasi pemasok", detail: String(err) });
+    return res.status(500).json({ error: "Gagal mengambil rekomendasi pemasok", detail: String(err) });
   }
 });
 

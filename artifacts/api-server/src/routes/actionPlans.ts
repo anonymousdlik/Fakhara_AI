@@ -41,7 +41,7 @@ router.get("/businesses/:id/action-plan", async (req, res) => {
       })),
     });
   } catch (err) {
-    res.status(500).json({ error: "Gagal mengambil rencana aksi", detail: String(err) });
+    return res.status(500).json({ error: "Gagal mengambil rencana aksi", detail: String(err) });
   }
 });
 
@@ -134,7 +134,7 @@ router.post("/businesses/:id/action-plan", async (req, res) => {
       })),
     });
   } catch (err) {
-    res.status(500).json({ error: "Gagal membuat rencana aksi", detail: String(err) });
+    return res.status(500).json({ error: "Gagal membuat rencana aksi", detail: String(err) });
   }
 });
 
@@ -162,7 +162,7 @@ router.patch("/businesses/:id/action-plan/items/:itemId", async (req, res) => {
         : undefined,
     });
   } catch (err) {
-    res.status(500).json({ error: "Gagal mengupdate item", detail: String(err) });
+    return res.status(500).json({ error: "Gagal mengupdate item", detail: String(err) });
   }
 });
 

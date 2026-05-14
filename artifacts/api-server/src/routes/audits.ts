@@ -135,7 +135,7 @@ router.post("/businesses/:id/audits", async (req, res) => {
       wasteKg: Number(row.wasteKg),
     });
   } catch (err) {
-    res.status(500).json({ error: "Gagal membuat audit", detail: String(err) });
+    return res.status(500).json({ error: "Gagal membuat audit", detail: String(err) });
   }
 });
 
@@ -164,7 +164,7 @@ router.get("/businesses/:id/audits/latest", async (req, res) => {
       wasteKg: Number(row.wasteKg),
     });
   } catch (err) {
-    res.status(500).json({ error: "Gagal mengambil audit", detail: String(err) });
+    return res.status(500).json({ error: "Gagal mengambil audit", detail: String(err) });
   }
 });
 

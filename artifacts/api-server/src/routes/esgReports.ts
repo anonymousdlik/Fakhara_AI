@@ -32,7 +32,7 @@ router.get("/businesses/:id/esg-report", async (req, res) => {
       reductionFromBaseline: Number(report.reductionFromBaseline),
     });
   } catch (err) {
-    res.status(500).json({ error: "Gagal mengambil laporan ESG", detail: String(err) });
+    return res.status(500).json({ error: "Gagal mengambil laporan ESG", detail: String(err) });
   }
 });
 
@@ -134,7 +134,7 @@ router.post("/businesses/:id/esg-report", async (req, res) => {
       reductionFromBaseline: Number(row.reductionFromBaseline),
     });
   } catch (err) {
-    res.status(500).json({ error: "Gagal membuat laporan ESG", detail: String(err) });
+    return res.status(500).json({ error: "Gagal membuat laporan ESG", detail: String(err) });
   }
 });
 

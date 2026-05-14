@@ -104,7 +104,7 @@ router.get("/businesses/:id", async (req, res) => {
       actionItemsTotal: allActionItems.length,
     });
   } catch (err) {
-    res.status(500).json({ error: "Gagal mengambil bisnis", detail: String(err) });
+    return res.status(500).json({ error: "Gagal mengambil bisnis", detail: String(err) });
   }
 });
 
@@ -129,7 +129,7 @@ router.put("/businesses/:id", async (req, res) => {
 
     return res.json(row);
   } catch (err) {
-    res.status(500).json({ error: "Gagal mengupdate bisnis", detail: String(err) });
+    return res.status(500).json({ error: "Gagal mengupdate bisnis", detail: String(err) });
   }
 });
 
