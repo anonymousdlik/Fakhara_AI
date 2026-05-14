@@ -1,4 +1,7 @@
 import { openai } from "@workspace/integrations-openai-ai-server";
+
+type ChatCreateParams = Parameters<typeof openai.chat.completions.create>[0];
+type ChatMessages = ChatCreateParams["messages"];
 import { db } from "@workspace/db";
 import {
   audits,
@@ -11,17 +14,6 @@ import {
 import { eq, desc, asc } from "drizzle-orm";
 
 const MODEL = "gpt-4o";
-
-type ChatMessage = {
-  role: "system" | "user" | "assistant" | "tool";
-  content: string;
-  tool_call_id?: string;
-  tool_calls?: Array<{
-    id: string;
-    type: "function";
-    function: { name: string; arguments: string };
-  }>;
-};
 
 export type AgentTrace = {
   tool: string;
@@ -249,7 +241,7 @@ Kamu PUNYA AKSES KE TOOLS untuk mengambil data nyata dari database bisnis ini. W
 
 Jawab dalam Bahasa Indonesia yang ringkas (maks 4-5 kalimat per jawaban). Sertakan angka konkret dari tool. Jangan mengarang data.`;
 
-  const messages: ChatMessage[] = [
+  const messages: ChatMessages = [
     { role: "system", content: systemPrompt },
     ...history.map((h) => ({ role: h.role, content: h.content })),
     { role: "user", content: userMessage },
@@ -262,7 +254,7 @@ Jawab dalam Bahasa Indonesia yang ringkas (maks 4-5 kalimat per jawaban). Sertak
     const response = await openai.chat.completions.create({
       model: MODEL,
       max_completion_tokens: 1500,
-      messages: messages as never,
+      messages,
       tools,
       tool_choice: "auto",
     });

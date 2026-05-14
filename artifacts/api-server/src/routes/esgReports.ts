@@ -74,13 +74,13 @@ router.post("/businesses/:id/esg-report", async (req, res) => {
         : 0;
 
     const firstAudit = allAudits[allAudits.length - 1];
-    const reductionFromBaseline =
-      firstAudit && firstAudit.id !== latestAudit.id
-        ? ((Number(firstAudit.totalEmissions) -
-            Number(latestAudit.totalEmissions)) /
-            Number(firstAudit.totalEmissions)) *
-          100
+    const firstTotal = firstAudit ? Number(firstAudit.totalEmissions) : 0;
+    let reductionFromBaseline =
+      firstAudit && firstAudit.id !== latestAudit.id && firstTotal > 0
+        ? ((firstTotal - Number(latestAudit.totalEmissions)) / firstTotal) * 100
         : avgReduction;
+    if (!Number.isFinite(reductionFromBaseline)) reductionFromBaseline = 0;
+    reductionFromBaseline = Math.max(-999, Math.min(999, reductionFromBaseline));
 
     const allActionItemsList = await db
       .select()
