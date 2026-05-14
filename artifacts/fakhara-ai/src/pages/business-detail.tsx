@@ -1,4 +1,4 @@
-import { useState, useMemo, useRef } from "react";
+import { useState, useMemo, useRef, type ReactNode } from "react";
 import { useParams, Link, useLocation } from "wouter";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import {
@@ -1493,6 +1493,22 @@ function AssistantTab({ businessId }: { businessId: number }) {
   );
 }
 
+function CheckToggle({ checked, onChange, label, icon }: { checked: boolean; onChange: (v: boolean) => void; label: string; icon: ReactNode }) {
+  return (
+    <button
+      type="button"
+      onClick={() => onChange(!checked)}
+      className={`flex items-center gap-2 px-3 py-2.5 rounded-lg border text-sm font-medium transition-all text-left w-full ${checked ? "bg-teal-50 border-teal-400 text-teal-800" : "bg-gray-50 border-gray-200 text-gray-600 hover:bg-gray-100"}`}
+    >
+      <span className={`w-5 h-5 rounded flex items-center justify-center flex-shrink-0 ${checked ? "bg-teal-500" : "bg-gray-200"}`}>
+        {checked ? <CheckCircle2 className="w-3.5 h-3.5 text-white" /> : <X className="w-3.5 h-3.5 text-gray-400" />}
+      </span>
+      {icon}
+      <span>{label}</span>
+    </button>
+  );
+}
+
 interface GreenLendForm {
   hasRenewableEnergy: boolean;
   hasWasteRecycling: boolean;
@@ -1576,20 +1592,6 @@ function GreenLendTab({ businessId }: { businessId: number }) {
   const scoreColor = finalScore >= 80 ? "text-emerald-700" : finalScore >= 60 ? "text-blue-700" : finalScore >= 50 ? "text-amber-700" : "text-red-600";
   const scoreLabel = finalScore >= 80 ? "Sangat Baik" : finalScore >= 70 ? "Baik" : finalScore >= 60 ? "Cukup" : finalScore >= 50 ? "Minimum" : "Belum Layak";
   const scoreBg = finalScore >= 80 ? "bg-emerald-100 border-emerald-200" : finalScore >= 60 ? "bg-blue-100 border-blue-200" : finalScore >= 50 ? "bg-amber-100 border-amber-200" : "bg-red-100 border-red-200";
-
-  const CheckToggle = ({ checked, onChange, label, icon }: { checked: boolean; onChange: (v: boolean) => void; label: string; icon: React.ReactNode }) => (
-    <button
-      type="button"
-      onClick={() => onChange(!checked)}
-      className={`flex items-center gap-2 px-3 py-2.5 rounded-lg border text-sm font-medium transition-all text-left w-full ${checked ? "bg-teal-50 border-teal-400 text-teal-800" : "bg-gray-50 border-gray-200 text-gray-600 hover:bg-gray-100"}`}
-    >
-      <span className={`w-5 h-5 rounded flex items-center justify-center flex-shrink-0 ${checked ? "bg-teal-500" : "bg-gray-200"}`}>
-        {checked ? <CheckCircle2 className="w-3.5 h-3.5 text-white" /> : <X className="w-3.5 h-3.5 text-gray-400" />}
-      </span>
-      {icon}
-      <span>{label}</span>
-    </button>
-  );
 
   const handleAnalysis = async () => {
     if (!audit) {
