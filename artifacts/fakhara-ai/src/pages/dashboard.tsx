@@ -7,7 +7,7 @@ import {
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
-import { Plus, Leaf, TrendingDown, Factory, CheckCircle2, ArrowRight, BarChart3 } from "lucide-react";
+import { Plus, TrendingDown, Factory, CheckCircle2, ArrowRight, BarChart3 } from "lucide-react";
 
 export default function Dashboard() {
   const { data: summary } = useQuery({
@@ -28,13 +28,7 @@ export default function Dashboard() {
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
           <div className="flex items-center justify-between mb-10">
             <div className="flex items-center gap-3">
-              <div className="w-11 h-11 bg-green-600 rounded-2xl flex items-center justify-center shadow-sm">
-                <Leaf className="w-6 h-6 text-white" />
-              </div>
-              <div>
-                <h1 className="text-2xl font-bold text-gray-900">Fakhara AI</h1>
-                <p className="text-sm text-gray-500">Agen Keberlanjutan untuk UMKM Indonesia</p>
-              </div>
+              <img src="/logo.png" alt="Fakhara AI" className="h-14 w-auto" />
             </div>
             <Link href="/businesses/new">
               <Button className="bg-green-600 hover:bg-green-700 gap-2">
@@ -108,13 +102,7 @@ export default function Dashboard() {
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
         <div className="flex items-center justify-between mb-8">
           <div>
-            <div className="flex items-center gap-3 mb-2">
-              <div className="w-10 h-10 bg-green-600 rounded-xl flex items-center justify-center">
-                <Leaf className="w-6 h-6 text-white" />
-              </div>
-              <h1 className="text-3xl font-bold text-gray-900">Fakhara AI</h1>
-            </div>
-            <p className="text-gray-500 ml-13 pl-1">Agen Keberlanjutan untuk UMKM Indonesia</p>
+            <img src="/logo.png" alt="Fakhara AI" className="h-14 w-auto" />
           </div>
           <Link href="/businesses/new">
             <Button className="bg-green-600 hover:bg-green-700 gap-2">

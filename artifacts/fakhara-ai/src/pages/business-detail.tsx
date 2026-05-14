@@ -1235,6 +1235,50 @@ function EsgReportTab({ businessId }: { businessId: number }) {
     return "text-red-600";
   };
 
+  const handlePrint = () => {
+    const logoUrl = `${window.location.origin}/logo.png`;
+    const html = `<!DOCTYPE html><html lang="id"><head><meta charset="UTF-8"><title>Laporan ESG — Fakhara AI</title>
+<style>
+  body { font-family: 'Segoe UI', sans-serif; max-width: 800px; margin: 0 auto; padding: 32px; color: #111; }
+  .header { display: flex; align-items: center; gap: 16px; border-bottom: 2px solid #16a34a; padding-bottom: 20px; margin-bottom: 28px; }
+  .header img { height: 64px; }
+  .header-text h1 { margin: 0; font-size: 22px; color: #111; }
+  .header-text p { margin: 4px 0 0; font-size: 13px; color: #6b7280; }
+  .scores { display: grid; grid-template-columns: repeat(4, 1fr); gap: 12px; margin-bottom: 24px; }
+  .score-card { background: #f0fdf4; border: 1px solid #86efac; border-radius: 10px; padding: 14px; text-align: center; }
+  .score-card .value { font-size: 32px; font-weight: 700; color: #16a34a; }
+  .score-card .label { font-size: 12px; color: #4b5563; margin-top: 4px; }
+  .section { margin-bottom: 24px; background: #fafafa; border: 1px solid #e5e7eb; border-radius: 10px; padding: 20px; }
+  .section h2 { margin: 0 0 12px; font-size: 15px; color: #374151; display: flex; align-items: center; gap: 8px; }
+  .section p { font-size: 13.5px; color: #4b5563; line-height: 1.8; white-space: pre-line; }
+  .footer { margin-top: 40px; border-top: 1px solid #e5e7eb; padding-top: 16px; font-size: 11px; color: #9ca3af; text-align: center; }
+  @media print { body { padding: 16px; } button { display: none; } }
+</style></head><body>
+<div class="header">
+  <img src="${logoUrl}" alt="Fakhara AI" />
+  <div class="header-text">
+    <h1>Laporan ESG</h1>
+    <p>Periode: ${report.period} &nbsp;|&nbsp; Digenerate oleh Fakhara AI</p>
+  </div>
+</div>
+<div class="scores">
+  <div class="score-card"><div class="value">${report.environmentalScore}</div><div class="label">Skor Lingkungan (E)</div></div>
+  <div class="score-card"><div class="value">${report.socialScore}</div><div class="label">Skor Sosial (S)</div></div>
+  <div class="score-card"><div class="value">${report.governanceScore}</div><div class="label">Skor Tata Kelola (G)</div></div>
+  <div class="score-card" style="background:#f8fafc;border-color:#94a3b8"><div class="value" style="color:#374151">${report.overallScore}</div><div class="label">Skor ESG Keseluruhan</div></div>
+</div>
+<div class="section"><h2>📋 Ringkasan Eksekutif</h2><p>${report.executiveSummary}</p></div>
+<div class="section"><h2>🌿 E — Lingkungan</h2><p>${report.environmentalSection}</p></div>
+<div class="section"><h2>👥 S — Sosial</h2><p>${report.socialSection}</p></div>
+<div class="section"><h2>🏛 G — Tata Kelola</h2><p>${report.governanceSection}</p></div>
+<div class="section"><h2>💡 Rekomendasi Strategis</h2><p>${report.recommendations}</p></div>
+<div class="footer">Laporan ini dihasilkan oleh Fakhara AI &mdash; Intelligent by Design, Elegant by Nature &nbsp;|&nbsp; fakhara.ai</div>
+<script>window.onload = function(){ window.print(); }<\/script>
+</body></html>`;
+    const win = window.open("", "_blank");
+    if (win) { win.document.write(html); win.document.close(); }
+  };
+
   return (
     <div className="space-y-5">
       <div className="grid grid-cols-2 lg:grid-cols-4 gap-3">
@@ -1288,10 +1332,16 @@ function EsgReportTab({ businessId }: { businessId: number }) {
         </Card>
       ))}
 
-      <Button variant="outline" className="gap-2" onClick={() => generateMutation.mutate()} disabled={generateMutation.isPending}>
-        {generateMutation.isPending ? <RefreshCw className="w-4 h-4 animate-spin" /> : <RefreshCw className="w-4 h-4" />}
-        Regenerate Laporan ESG
-      </Button>
+      <div className="flex gap-2 flex-wrap">
+        <Button variant="outline" className="gap-2" onClick={() => generateMutation.mutate()} disabled={generateMutation.isPending}>
+          {generateMutation.isPending ? <RefreshCw className="w-4 h-4 animate-spin" /> : <RefreshCw className="w-4 h-4" />}
+          Regenerate Laporan ESG
+        </Button>
+        <Button variant="outline" className="gap-2 text-green-700 border-green-300 hover:bg-green-50" onClick={handlePrint}>
+          <Download className="w-4 h-4" />
+          Download PDF
+        </Button>
+      </div>
     </div>
   );
 }
@@ -1975,10 +2025,7 @@ export default function BusinessDetail() {
     <div className="min-h-screen bg-gradient-to-br from-green-50 via-emerald-50 to-teal-50">
       <div className="max-w-5xl mx-auto px-4 sm:px-6 py-6">
         <div className="flex items-center gap-3 mb-5">
-          <div className="w-9 h-9 bg-green-600 rounded-xl flex items-center justify-center">
-            <Leaf className="w-5 h-5 text-white" />
-          </div>
-          <span className="text-lg font-bold text-gray-900">Fakhara AI</span>
+          <img src="/logo.png" alt="Fakhara AI" className="h-11 w-auto" />
         </div>
 
         <Link href="/">

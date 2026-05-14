@@ -2,7 +2,7 @@ import { Link } from "wouter";
 import { Card, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
-import { Leaf, ShieldCheck, BarChart3, Sparkles, ArrowRight, Target, Globe2, Truck, FileText } from "lucide-react";
+import { ShieldCheck, BarChart3, Sparkles, ArrowRight, Target, Globe2, Truck, FileText } from "lucide-react";
 
 export default function Landing() {
   const pillars = [
@@ -40,13 +40,7 @@ export default function Landing() {
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
         <header className="flex items-center justify-between mb-16">
           <div className="flex items-center gap-3">
-            <div className="w-11 h-11 bg-green-600 rounded-2xl flex items-center justify-center shadow-sm">
-              <Leaf className="w-6 h-6 text-white" />
-            </div>
-            <div>
-              <h1 className="text-2xl font-bold">Fakhara AI</h1>
-              <p className="text-sm text-gray-500">Agen keberlanjutan untuk UMKM Indonesia</p>
-            </div>
+            <img src="/logo.png" alt="Fakhara AI" className="h-14 w-auto" />
           </div>
           <Link href="/dashboard">
             <Button className="bg-green-600 hover:bg-green-700 gap-2">
